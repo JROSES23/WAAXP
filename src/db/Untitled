@@ -1,0 +1,154 @@
+// src/db/products.ts
+import { Product, ProductSearchResult } from "../types";
+
+let PRODUCTS_DB: Product[] = [];
+
+export function initializeProducts(businessId: string) {
+  PRODUCTS_DB = [
+    {
+      id: "prod_1",
+      business_id: businessId,
+      nombre: "Laptop HP 15-dy2000",
+      descripcion: "Intel i5, 8GB RAM, 256GB SSD",
+      precio: 450000,
+      stock: 5,
+      categoria: "computacion",
+      keywords: ["laptop", "notebook", "computador", "hp"],
+      metadata: {
+        ventas_ultimos_30_dias: 2,
+        dias_sin_venta: 45,
+        descuento_max_permitido: 20,
+        ultima_venta: new Date("2024-11-10"),
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+    {
+      id: "prod_2",
+      business_id: businessId,
+      nombre: "Mouse Logitech M185",
+      descripcion: "Inalámbrico, sensor óptico",
+      precio: 12000,
+      stock: 20,
+      categoria: "accesorios",
+      keywords: ["mouse", "raton", "inalambrico", "logitech"],
+      metadata: {
+        ventas_ultimos_30_dias: 8,
+        dias_sin_venta: 3,
+        descuento_max_permitido: 10,
+        ultima_venta: new Date("2024-12-23"),
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+    {
+      id: "prod_3",
+      business_id: businessId,
+      nombre: "Teclado Mecánico Redragon K552",
+      descripcion: "RGB, switches blue, español",
+      precio: 35000,
+      precio_con_descuento: 28000,
+      stock: 12,
+      categoria: "accesorios",
+      keywords: ["teclado", "mecanico", "gaming", "rgb", "redragon"],
+      metadata: {
+        ventas_ultimos_30_dias: 5,
+        dias_sin_venta: 7,
+        descuento_max_permitido: 25,
+        ultima_venta: new Date("2024-12-19"),
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  ];
+}
+
+export async function searchProducts(
+  query: string,
+  businessId: string
+): Promise<ProductSearchResult> {
+  const queryLower = query.toLowerCase().trim();
+  const palabras = queryLower.split(" ");
+
+  const productos = PRODUCTS_DB.filter((p) => {
+    if (p.business_id !== businessId) return false;
+    if (p.nombre.toLowerCase().includes(queryLower)) return true;
+
+    const matchKeywords = p.keywords.some((kw) =>
+      palabras.some((palabra) => kw.includes(palabra) || palabra.includes(kw))
+    );
+    if (matchKeywords) return true;
+
+    if (p.descripcion?.toLowerCase().includes(queryLower)) return true;
+    return false;
+  });
+
+  const productosOrdenados = productos.sort((a, b) => {
+    const scoreA = calcularScoreRelevancia(a, queryLower);
+    const scoreB = calcularScoreRelevancia(b, queryLower);
+    return scoreB - scoreA;
+  });
+
+  return {
+    products: productosOrdenados,
+    total: productosOrdenados.length,
+    query: query,
+  };
+}
+
+function calcularScoreRelevancia(producto: Product, query: string): number {
+  let score = 0;
+  if (producto.nombre.toLowerCase() === query) score += 10;
+  if (producto.nombre.toLowerCase().includes(query)) score += 5;
+  
+  producto.keywords.forEach((kw) => {
+    if (kw.includes(query) || query.includes(kw)) score += 3;
+  });
+  
+  if (producto.stock > 0) score += 2;
+  if (producto.precio_con_descuento) score += 1;
+  
+  return score;
+}
+
+export async function getProductById(
+  productId: string,
+  businessId: string
+): Promise<Product | null> {
+  const producto = PRODUCTS_DB.find(
+    (p) => p.id === productId && p.business_id === businessId
+  );
+  return producto || null;
+}
+
+export async function getLowRotationProducts(
+  businessId: string,
+  minDiasSinVenta: number = 30
+): Promise<Product[]> {
+  return PRODUCTS_DB.filter(
+    (p) =>
+      p.business_id === businessId &&
+      p.metadata.dias_sin_venta >= minDiasSinVenta &&
+      p.stock > 0 &&
+      !p.precio_con_descuento
+  ).sort((a, b) => b.metadata.dias_sin_venta - a.metadata.dias_sin_venta);
+}
+
+export async function updateProductAfterSale(
+  productId: string,
+  cantidadVendida: number
+): Promise<void> {
+  const producto = PRODUCTS_DB.find((p) => p.id === productId);
+  if (!producto) {
+    console.error(`Producto ${productId} no encontrado`);
+    return;
+  }
+
+  producto.stock -= cantidadVendida;
+  producto.metadata.ventas_ultimos_30_dias += cantidadVendida;
+  producto.metadata.dias_sin_venta = 0;
+  producto.metadata.ultima_venta = new Date();
+  producto.updated_at = new Date();
+
+  console.log(`Producto ${producto.nombre} actualizado. Stock: ${producto.stock}`);
+}
