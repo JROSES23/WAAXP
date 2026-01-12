@@ -1,10 +1,9 @@
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseClient';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
     const config = await request.json();
-    const supabase = createClient();
 
     const { data, error } = await supabase
       .from('bot_config')
@@ -26,14 +25,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    console.error('Error guardando config:', error);
     return NextResponse.json({ error: 'Error guardando config' }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const supabase = createClient();
-    
     const { data, error } = await supabase
       .from('bot_config')
       .select('*')
@@ -44,6 +42,7 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
+    console.error('Error cargando config:', error);
     return NextResponse.json({ error: 'Error cargando config' }, { status: 500 });
   }
 }

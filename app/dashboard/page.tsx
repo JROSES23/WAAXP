@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { Session } from '@supabase/supabase-js';  // ⭐ AGREGAR ESTA LÍNEA
 import Inbox from './inbox/Inbox';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Session['user'] | null>(null)
 
   // ⭐ Verificación de autenticación
   useEffect(() => {
@@ -61,9 +62,10 @@ export default function DashboardPage() {
     router.push(`/dashboard/inbox?conversation=${conversationId}`);
   };
 
+  // ⭐ UN SOLO RETURN
   return (
     <div className="p-6">
-      {/* ⭐ Header actualizado con botón de logout */}
+      {/* Header con logout */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">
@@ -85,21 +87,6 @@ export default function DashboardPage() {
             Cerrar sesión
           </button>
         </div>
-      </div>
-
-      {/* ⬇️ TU CÓDIGO ORIGINAL CONTINÚA AQUÍ SIN CAMBIOS ⬇️ */}
-
-
-  return (
-    <div className="p-6">
-      {/* Header del dashboard */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">
-          Panel principal
-        </h1>
-        <p className="text-sm text-gray-500">
-          Revisa cómo tu asistente está ayudando a tu negocio.
-        </p>
       </div>
 
       {/* Métricas principales - 3 cards */}

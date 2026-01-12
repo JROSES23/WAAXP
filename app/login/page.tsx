@@ -3,12 +3,13 @@
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { supabase } from '@/lib/supabaseClient'
+import { Session } from '@supabase/supabase-js';  // ⭐ AGREGAR ESTA LÍNEA
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
     // Verificar si ya hay sesión

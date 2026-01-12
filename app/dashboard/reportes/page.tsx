@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { writeFile, utils } from 'exceljs';
 import ExcelJS from 'exceljs';
 
 interface Venta {

@@ -1,6 +1,7 @@
 'use client'
 
-import Sidebar from "@/src/components/dashboard/Sidebar";
+import Sidebar from "@/components/dashboard/Sidebar";
+
 import { ReactNode, useState, useEffect } from "react";
 import { Bell, Search, ChevronDown, Power } from "lucide-react";
 import { useRouter } from "next/navigation";

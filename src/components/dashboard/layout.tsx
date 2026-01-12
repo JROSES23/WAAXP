@@ -1,7 +1,8 @@
 'use client'
-import { Sidebar } from './Sidebar'  // Tu sidebar existente
+import Sidebar from "@/components/dashboard/Sidebar";
 import Metrics from './Metrics'
-import Inbox from './Inbox'
+import Inbox from './inbox/Inbox'
+
 
 export default function DashboardLayout() {
   return (

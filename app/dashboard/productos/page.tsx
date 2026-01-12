@@ -134,16 +134,16 @@ export default function ProductosPage() {
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-              <Input label="Nombre" placeholder="Ej: Plan Premium" value={formData.nombre} onChange={(value) => setFormData({ ...formData, nombre: value })} />
-              <Input label="Descripción" placeholder="Breve descripción" value={formData.descripcion} onChange={(value) => setFormData({ ...formData, descripcion: value })} />
+              <Input label="Nombre" placeholder="Ej: Plan Premium" value={formData.nombre} onChange={(value: string) => setFormData({ ...formData, nombre: value })} />
+              <Input label="Descripción" placeholder="Breve descripción" value={formData.descripcion} onChange={(value: string) => setFormData({ ...formData, descripcion: value })} />
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Input label="Precio" type="number" placeholder="80" value={formData.precio} onChange={(value) => setFormData({ ...formData, precio: value })} />
-                <Select label="Moneda" options={['USD', 'CLP']} value={formData.moneda} onChange={(value) => setFormData({ ...formData, moneda: value })} />
+                <Input label="Precio" type="number" placeholder="80" value={formData.precio} onChange={(value: string) => setFormData({ ...formData, precio: value })} />
+                <Select label="Moneda" options={['USD', 'CLP']} value={formData.moneda} onChange={(value: string) => setFormData({ ...formData, moneda: value })} />
               </div>
 
-              <Input label="Stock" type="number" placeholder="100" value={formData.stock} onChange={(value) => setFormData({ ...formData, stock: value })} />
-              <Select label="Categoría" options={['Servicios', 'Consultoría', 'Producto']} value={formData.categoria} onChange={(value) => setFormData({ ...formData, categoria: value })} />
+              <Input label="Stock" type="number" placeholder="100" value={formData.stock} onChange={(value: string) => setFormData({ ...formData, stock: value })} />
+              <Select label="Categoría" options={['Servicios', 'Consultoría', 'Producto']} value={formData.categoria} onChange={(value: string) => setFormData({ ...formData, categoria: value })} />
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
