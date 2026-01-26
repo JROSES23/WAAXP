@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const config = await request.json();
 
-    const supabase = createClient()
+    const supabase = createClient(); // ← Crear instancia aquí
     const { data, error } = await supabase
       .from('bot_config')
       .upsert({
@@ -26,13 +26,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error guardando config:', error);
-    return NextResponse.json({ error: 'Error guardando config' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Error al guardar configuración' },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET() {
   try {
+    const supabase = createClient(); // ← AGREGAR ESTA LÍNEA
     const { data, error } = await supabase
       .from('bot_config')
       .select('*')
@@ -41,9 +44,11 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error cargando config:', error);
-    return NextResponse.json({ error: 'Error cargando config' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Error al obtener configuración' },
+      { status: 500 }
+    );
   }
 }
