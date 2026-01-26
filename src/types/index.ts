@@ -1,4 +1,4 @@
 // Tipos mínimos para que compile hasta que exista el modelo real
-export type IncomingMessagePayload = any;
-export type Conversation = any;
-export type Message = any;
+export type Config = Record<string, unknown>
+export type Message = Record<string, unknown>
+export type Client = Record<string, unknown>
