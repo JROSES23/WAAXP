@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00AEEF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4DD0E1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00B8D4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E676;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#69F0AE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00C853;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <path d="M150 50 C 120 50, 100 70, 100 90 C 100 105, 110 115, 120 120 C 130 125, 145 130, 150 130 C 155 130, 170 125, 180 120 C 190 115, 200 105, 200 90 C 200 70, 180 50, 150 50 Z M 170 90 C 170 105, 160 115, 150 120 C 140 115, 130 105, 130 90 C 130 75, 140 65, 150 65 C 160 65, 170 75, 170 90 Z M 230 80 C 230 95, 220 110, 210 115 C 200 120, 185 125, 180 125 C 175 125, 160 120, 150 115 C 145 115, 140 110, 140 100 C 140 90, 145 80, 155 75 C 165 70, 175 70, 185 75 C 195 80, 205 85, 210 90 C 215 95, 220 100, 220 105 C 220 110, 215 115, 210 115 C 205 115, 195 110, 185 105 C 175 100, 170 95, 170 90 C 170 85, 175 80, 180 80 C 185 80, 195 85, 205 90 C 215 95, 225 100, 230 105 Z" 
+        fill="url(#cloudGrad)" stroke="#008CBA" stroke-width="2"/>
+  
+  <path d="M 200 110 Q 210 115, 215 125 Q 220 135, 210 140 Q 200 145, 190 140 Q 180 135, 185 125 Z" fill="url(#cloudGrad)" stroke="#008CBA" stroke-width="1.5"/>
+  
+  <path d="M 140 100 L 170 70 L 190 90 L 170 110 Z" fill="url(#arrowGrad)" stroke="#00C853" stroke-width="2" stroke-linejoin="round"/>
+</svg>

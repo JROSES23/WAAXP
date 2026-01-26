@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Save, MessageSquare, Bell, Phone, Sparkles } from 'lucide-react';
+import { useState } from 'react'
+import { Save, MessageSquare, Bell, Phone, Sparkles, Trash2, Send } from 'lucide-react'
 
 export default function ConfiguracionPage() {
   const [config, setConfig] = useState({
@@ -13,57 +13,60 @@ export default function ConfiguracionPage() {
     whatsappNumero: '',
     whatsappWebhook: 'conectado',
     notificacionesPush: true
-  });
+  })
 
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewMessage, setPreviewMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [previewMessage, setPreviewMessage] = useState('')
+  const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([])
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = () => {
-    // Aquí guardarías en tu base de datos
-    alert('Configuración guardada exitosamente');
-  };
+    setIsSaving(true)
+    setTimeout(() => {
+      setIsSaving(false)
+      alert('✅ Configuración guardada exitosamente')
+    }, 1000)
+  }
 
   const testChat = () => {
-    if (!previewMessage.trim()) return;
+    if (!previewMessage.trim()) return
     
-    // Simula respuesta de IA con el prompt aplicado
-    const respuestaIA = generarRespuestaConPrompt(previewMessage);
+    const respuestaIA = generarRespuestaConPrompt(previewMessage)
     
     setChatMessages([
       ...chatMessages,
       { role: 'user', content: previewMessage },
       { role: 'assistant', content: respuestaIA }
-    ]);
-    setPreviewMessage('');
-  };
+    ])
+    setPreviewMessage('')
+  }
 
   const generarRespuestaConPrompt = (mensaje: string) => {
-    // Simula cómo respondería la IA con la configuración actual
     const tonos = {
       amigable: '¡Hola! 😊 ',
       profesional: 'Estimado cliente, ',
       agresivo: '¡Oferta limitada! '
-    };
+    }
     
     return `${tonos[config.tono as keyof typeof tonos]}${mensaje.includes('precio') ? 
-      `Nuestros servicios parten desde $${(15000).toLocaleString('es-CL')} CLP. ` : 
-      'Gracias por tu consulta. '}${config.miniPrompt ? `(Aplicando: ${config.miniPrompt.substring(0, 50)}...)` : ''}`;
-  };
+      `Nuestros servicios parten desde $15.000 CLP. ` : 
+      'Gracias por tu consulta. '}${config.miniPrompt ? `(Aplicando: ${config.miniPrompt.substring(0, 50)}...)` : ''}`
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Configuración</h1>
-          <p className="text-gray-600 mt-1">Personaliza el comportamiento de la IA sin código</p>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Configuración</h1>
+          <p className="text-sm text-slate-600">Personaliza el comportamiento de la IA sin código</p>
         </div>
         <button
           onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+          disabled={isSaving}
+          className="px-5 py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-lg flex items-center gap-2 font-semibold transition-colors shadow-sm"
         >
-          <Save size={18} />
-          Guardar Cambios
+          <Save className="w-4 h-4" />
+          {isSaving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
       </div>
 
@@ -72,60 +75,83 @@ export default function ConfiguracionPage() {
         <div className="space-y-6">
           
           {/* Mini-Prompt IA */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="text-purple-600" size={20} />
-              <h2 className="text-xl font-semibold">Mini-Prompt IA</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Mini-Prompt IA</h2>
+                <p className="text-xs text-slate-500">Define el comportamiento de la IA</p>
+              </div>
             </div>
             
             <textarea
               value={config.miniPrompt}
               onChange={(e) => setConfig({...config, miniPrompt: e.target.value.slice(0, 500)})}
               placeholder='Ej: "Sé amigable para fontaneros residenciales, precios en CLP, follow-up día 3"'
-              className="w-full border rounded-lg p-3 h-32 resize-none"
+              className="w-full border border-slate-200 rounded-lg p-3 h-32 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               maxLength={500}
             />
-            <div className="text-sm text-gray-500 mt-2">
-              {config.miniPrompt.length}/500 caracteres
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-slate-500">
+                {config.miniPrompt.length}/500 caracteres
+              </span>
+              {config.miniPrompt.length > 0 && (
+                <button
+                  onClick={() => setConfig({...config, miniPrompt: ''})}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium"
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
           </div>
 
           {/* Opciones de Comportamiento */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-xl font-semibold mb-4">Comportamiento</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Comportamiento</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Días Follow-up */}
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Días para Follow-up Automático
                 </label>
                 <select
                   value={config.diasFollowUp}
                   onChange={(e) => setConfig({...config, diasFollowUp: Number(e.target.value)})}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white cursor-pointer"
                 >
                   <option value={1}>1 día</option>
-                  <option value={3}>3 días</option>
+                  <option value={3}>3 días (recomendado)</option>
                   <option value={7}>7 días</option>
+                  <option value={14}>14 días</option>
                 </select>
               </div>
 
               {/* Tono */}
               <div>
-                <label className="block text-sm font-medium mb-2">Tono de Comunicación</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['amigable', 'profesional', 'agresivo'].map(tono => (
+                <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  Tono de Comunicación
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'amigable', label: 'Amigable', emoji: '😊' },
+                    { value: 'profesional', label: 'Profesional', emoji: '💼' },
+                    { value: 'agresivo', label: 'Directo', emoji: '⚡' }
+                  ].map(tono => (
                     <button
-                      key={tono}
-                      onClick={() => setConfig({...config, tono})}
-                      className={`p-3 rounded-lg border-2 capitalize ${
-                        config.tono === tono 
-                          ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                          : 'border-gray-200 hover:border-gray-300'
+                      key={tono.value}
+                      onClick={() => setConfig({...config, tono: tono.value})}
+                      className={`p-3 rounded-lg border-2 transition-all ${
+                        config.tono === tono.value 
+                          ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm' 
+                          : 'border-slate-200 hover:border-slate-300 text-slate-600'
                       }`}
                     >
-                      {tono}
+                      <div className="text-2xl mb-1">{tono.emoji}</div>
+                      <div className="text-xs font-semibold">{tono.label}</div>
                     </button>
                   ))}
                 </div>
@@ -133,77 +159,108 @@ export default function ConfiguracionPage() {
 
               {/* Descuento Máximo */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Descuento Automático Máximo (%)
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Descuento Automático Máximo
                 </label>
-                <input
-                  type="number"
-                  value={config.descuentoMax}
-                  onChange={(e) => setConfig({...config, descuentoMax: Number(e.target.value)})}
-                  min={0}
-                  max={50}
-                  className="w-full border rounded-lg p-2"
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  La IA puede ofrecer hasta {config.descuentoMax}% de descuento
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    value={config.descuentoMax}
+                    onChange={(e) => setConfig({...config, descuentoMax: Number(e.target.value)})}
+                    min={0}
+                    max={50}
+                    className="flex-1"
+                  />
+                  <div className="w-16 text-center">
+                    <span className="text-2xl font-bold text-teal-600">{config.descuentoMax}</span>
+                    <span className="text-sm text-slate-600">%</span>
+                  </div>
                 </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  La IA puede ofrecer hasta {config.descuentoMax}% de descuento
+                </p>
               </div>
 
               {/* Productos Destacados */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Productos Destacados (separados por coma)
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Productos Destacados
                 </label>
                 <input
                   type="text"
                   placeholder="Ej: Llaves mezcladoras, Válvulas, Tuberías PVC"
                   onChange={(e) => setConfig({...config, productosDestacados: e.target.value.split(',')})}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
+                <p className="text-xs text-slate-500 mt-1">Separa con comas</p>
               </div>
             </div>
           </div>
 
           {/* WhatsApp Settings */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Phone className="text-green-600" size={20} />
-              <h2 className="text-xl font-semibold">WhatsApp</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <Phone className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">WhatsApp</h2>
+                <p className="text-xs text-slate-500">Integración con WhatsApp Business</p>
+              </div>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Número Conectado</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Número Conectado
+                </label>
                 <input
                   type="text"
                   value={config.whatsappNumero}
                   onChange={(e) => setConfig({...config, whatsappNumero: e.target.value})}
                   placeholder="+56 9 1234 5678"
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-2">Estado Webhook</label>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    config.whatsappWebhook === 'conectado' ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
-                  <span className="capitalize">{config.whatsappWebhook}</span>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Estado Webhook</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Conexión con WhatsApp API</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      config.whatsappWebhook === 'conectado' ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                    <span className={`text-sm font-semibold capitalize ${
+                      config.whatsappWebhook === 'conectado' ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      {config.whatsappWebhook}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Notificaciones */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="text-orange-600" size={20} />
-              <h2 className="text-xl font-semibold">Notificaciones</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                <Bell className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Notificaciones</h2>
+                <p className="text-xs text-slate-500">Alertas y recordatorios</p>
+              </div>
             </div>
             
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm">Notificaciones Push para Aprobaciones Móviles</span>
+            <label className="flex items-center justify-between cursor-pointer bg-slate-50 rounded-lg p-4 hover:bg-slate-100 transition-colors">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Notificaciones Push</p>
+                <p className="text-xs text-slate-500 mt-0.5">Para aprobaciones móviles</p>
+              </div>
               <div className="relative">
                 <input
                   type="checkbox"
@@ -212,9 +269,9 @@ export default function ConfiguracionPage() {
                   className="sr-only"
                 />
                 <div className={`w-14 h-8 rounded-full transition ${
-                  config.notificacionesPush ? 'bg-blue-600' : 'bg-gray-300'
+                  config.notificacionesPush ? 'bg-teal-600' : 'bg-slate-300'
                 }`}>
-                  <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition transform ${
+                  <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-sm transition transform ${
                     config.notificacionesPush ? 'translate-x-6' : ''
                   }`} />
                 </div>
@@ -224,34 +281,43 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Panel Derecho - Preview Chat */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 h-fit sticky top-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="text-blue-600" size={20} />
-            <h2 className="text-xl font-semibold">Preview & Test</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-fit lg:sticky lg:top-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Preview & Test</h2>
+              <p className="text-xs text-slate-500">Prueba tu configuración</p>
+            </div>
           </div>
-          
-          <p className="text-sm text-gray-600 mb-4">
-            Prueba cómo responderá la IA con tu configuración actual
-          </p>
 
           {/* Chat Messages */}
-          <div className="border rounded-lg p-4 h-96 overflow-y-auto mb-4 bg-gray-50">
+          <div className="border border-slate-200 rounded-lg p-4 h-96 overflow-y-auto mb-4 bg-gradient-to-b from-slate-50 to-white">
             {chatMessages.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                Escribe un mensaje de prueba abajo
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                  <MessageSquare className="w-8 h-8 text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500 font-medium">Sin mensajes aún</p>
+                <p className="text-xs text-slate-400 mt-1">Escribe un mensaje de prueba abajo</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`p-3 rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-blue-600 text-white ml-auto max-w-[80%]'
-                        : 'bg-white border mr-auto max-w-[80%]'
-                    }`}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.content}
+                    <div
+                      className={`p-3 rounded-xl max-w-[85%] ${
+                        msg.role === 'user'
+                          ? 'bg-teal-600 text-white rounded-br-none'
+                          : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -259,31 +325,37 @@ export default function ConfiguracionPage() {
           </div>
 
           {/* Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={previewMessage}
-              onChange={(e) => setPreviewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && testChat()}
-              placeholder="Escribe un mensaje de prueba..."
-              className="flex-1 border rounded-lg p-2"
-            />
-            <button
-              onClick={testChat}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-            >
-              Enviar
-            </button>
-          </div>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={previewMessage}
+                onChange={(e) => setPreviewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && testChat()}
+                placeholder="Escribe un mensaje de prueba..."
+                className="flex-1 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+              <button
+                onClick={testChat}
+                disabled={!previewMessage.trim()}
+                className="bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg transition-colors"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
 
-          <button
-            onClick={() => setChatMessages([])}
-            className="w-full mt-3 text-sm text-gray-600 hover:text-gray-800"
-          >
-            Limpiar Chat
-          </button>
+            {chatMessages.length > 0 && (
+              <button
+                onClick={() => setChatMessages([])}
+                className="w-full text-sm text-slate-600 hover:text-red-600 font-medium flex items-center justify-center gap-2 py-2 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpiar Chat
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,395 +1,317 @@
 'use client'
-import { useState } from 'react';
+
+import { useState } from 'react'
+import { Search, Check, AlertCircle, Send, Paperclip, Smile, Clock } from 'lucide-react'
+
+interface Conversation {
+  id: string
+  name: string
+  lastMessage: string
+  time: string
+  unread: boolean
+  status: 'new' | 'pending' | 'active' | 'closed'
+  avatar: string
+  hasAIResponse: boolean
+  aiSuggestion?: string
+}
 
 export default function Inbox() {
-  const [selectedChat, setSelectedChat] = useState(1);
-  
-  const chats = [
-    { 
-      id: 1, 
-      name: 'Juan Pérez', 
-      status: 'nuevo', 
-      preview: 'Hola, quería saber el precio del producto', 
-      time: '18 acto',
-      avatar: 'J',
-      messages: [
-        { id: 1, text: 'Hola, quería saber el precio del producto', from: 'client', time: '18:30' },
-        { id: 2, text: '¡Hola! Claro, el plan premium incluye asesoría ilimitada y declaración mensual. El costo es $80 USD/mes.', from: 'vendia', time: '18:31' },
-        { id: 3, text: '¿Te gustaría una cotización formal?', from: 'vendia', time: '18:31' }
-      ]
-    },
-    { 
-      id: 2, 
-      name: 'María López', 
-      status: 'esperando', 
-      preview: 'Consulta por producto...', 
-      time: '3 de cito',
-      avatar: 'M',
-      messages: [
-        { id: 1, text: '¿Tienen disponibilidad para el martes?', from: 'client', time: '14:20' }
-      ]
-    },
-    { 
-      id: 3, 
-      name: 'Ferretería San Luis', 
-      status: 'activo', 
-      preview: 'Consulta por producto...', 
-      time: '8 de cito',
-      avatar: 'F',
-      messages: []
-    }
-  ];
+  const [selectedConv, setSelectedConv] = useState<string>('juan-perez')
+  const [messageInput, setMessageInput] = useState('')
 
-  const currentChat = chats.find(c => c.id === selectedChat);
+  const conversations: Conversation[] = [
+    {
+      id: 'juan-perez',
+      name: 'Juan Pérez',
+      lastMessage: 'Hola, quería saber el precio del producto',
+      time: '2 min',
+      unread: true,
+      status: 'new',
+      avatar: 'J',
+      hasAIResponse: true,
+      aiSuggestion: 'Hola Juan, el precio del producto Premium es $45.000 CLP. Incluye envío gratis a todo Chile. ¿Te gustaría proceder con la compra?'
+    },
+    {
+      id: 'maria-lopez',
+      name: 'María López',
+      lastMessage: '¿Tienen stock del modelo anterior?',
+      time: '15 min',
+      unread: true,
+      status: 'pending',
+      avatar: 'M',
+      hasAIResponse: true,
+      aiSuggestion: 'Hola María, sí tenemos 5 unidades disponibles del modelo anterior a $32.000 CLP.'
+    },
+    {
+      id: 'ferreteria',
+      name: 'Ferretería San Luis',
+      lastMessage: 'Necesito cotización para 50 unidades',
+      time: '1h',
+      unread: false,
+      status: 'pending',
+      avatar: 'F',
+      hasAIResponse: true,
+      aiSuggestion: 'Para compras mayoristas de 50+ unidades ofrecemos precio especial de $38.000 por unidad.'
+    },
+    {
+      id: 'carlos',
+      name: 'Carlos Muñoz',
+      lastMessage: 'Gracias por la atención',
+      time: '2h',
+      unread: false,
+      status: 'closed',
+      avatar: 'C',
+      hasAIResponse: false
+    },
+  ]
+
+  const selectedConversation = conversations.find(c => c.id === selectedConv)
+
+  const messages = [
+    {
+      id: 1,
+      sender: 'client',
+      text: 'Hola, quería saber el precio del producto',
+      time: '18:30',
+      status: 'read'
+    },
+  ]
 
   return (
-    <div 
-      style={{
-        background: '#ffffff',
-        borderRadius: 12,
-        border: '1px solid #e2efec',
-        overflow: 'hidden',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        height: 480
-      }}
-    >
-      <div 
-        style={{
-          padding: '14px 18px',
-          borderBottom: '1px solid #e2efec',
-          background: '#ffffff'
-        }}
-      >
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
-          Inbox Híbrido
-        </h2>
+    <div className="h-screen flex flex-col bg-white">
+      {/* Header único del Inbox */}
+      <div className="border-b border-slate-200 px-6 py-4 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between max-w-[1800px] mx-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Inbox</h1>
+            <p className="text-sm text-slate-600 mt-1">Gestiona todas tus conversaciones</p>
+          </div>
+          
+          {/* Filtros rápidos */}
+          <div className="flex items-center gap-2">
+            <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 transition-colors">
+              Nuevos (3)
+            </button>
+            <button className="px-4 py-2 bg-white text-slate-700 rounded-lg font-medium text-sm border border-slate-200 hover:bg-slate-50 transition-colors">
+              En curso
+            </button>
+            <button className="px-4 py-2 bg-white text-slate-700 rounded-lg font-medium text-sm border border-slate-200 hover:bg-slate-50 transition-colors">
+              Archivados
+            </button>
+          </div>
+        </div>
       </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 2.2fr', height: 'calc(100% - 48px)' }}>
-        <div 
-          style={{
-            borderRight: '1px solid #e2efec',
-            overflowY: 'auto',
-            background: '#F6FBFA'
-          }}
-        >
-          {chats.map((chat) => (
-            <div 
-              key={chat.id}
-              onClick={() => setSelectedChat(chat.id)}
-              style={{
-                padding: '12px 14px',
-                borderBottom: '1px solid #e2efec',
-                background: selectedChat === chat.id ? '#E6F4EF' : 'transparent',
-                borderLeft: selectedChat === chat.id ? '3px solid #0f766e' : '3px solid transparent',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (selectedChat !== chat.id) {
-                  e.currentTarget.style.background = '#f0f9f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (selectedChat !== chat.id) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div 
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: '50%',
-                    background: '#0f766e',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    flexShrink: 0
-                  }}
-                >
-                  {chat.avatar}
+
+      {/* Contenedor principal del chat */}
+      <div className="flex flex-1 max-w-[1800px] mx-auto w-full overflow-hidden">
+        {/* Lista de conversaciones - Izquierda */}
+        <div className="w-[380px] border-r border-slate-200 flex flex-col bg-white flex-shrink-0">
+          {/* Header de conversaciones */}
+          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+            <h2 className="text-base font-semibold text-slate-900 mb-3">Conversaciones</h2>
+            
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar conversación..."
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Filtros */}
+            <div className="flex gap-2 mt-3">
+              <button className="px-3 py-1 bg-teal-600 text-white rounded-md text-xs font-medium">
+                Nuevos (2)
+              </button>
+              <button className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-medium hover:bg-slate-50">
+                Pendientes
+              </button>
+              <button className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-medium hover:bg-slate-50">
+                Todos
+              </button>
+            </div>
+          </div>
+
+          {/* Lista de conversaciones */}
+          <div className="flex-1 overflow-y-auto">
+            {conversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => setSelectedConv(conv.id)}
+                className={`w-full flex items-start gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                  selectedConv === conv.id ? 'bg-slate-100' : ''
+                }`}
+              >
+                {/* Avatar */}
+                <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                  {conv.avatar}
                 </div>
-                
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <h3 
-                      style={{ 
-                        fontSize: 13, 
-                        fontWeight: 700, 
-                        color: '#1a1a1a',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        margin: 0
-                      }}
-                    >
-                      {chat.name}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className={`text-sm font-semibold truncate ${
+                      conv.unread ? 'text-slate-900' : 'text-slate-600'
+                    }`}>
+                      {conv.name}
                     </h3>
-                    {chat.status === 'nuevo' && (
-                      <span 
-                        style={{
-                          padding: '2px 7px',
-                          background: '#0f766e',
-                          color: '#ffffff',
-                          fontSize: 9,
-                          borderRadius: 999,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        nuevo
+                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{conv.time}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <p className={`text-xs truncate ${
+                      conv.unread ? 'text-slate-600 font-medium' : 'text-slate-500'
+                    }`}>
+                      {conv.lastMessage}
+                    </p>
+                    
+                    {conv.unread && (
+                      <span className="w-5 h-5 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ml-2">
+                        1
                       </span>
                     )}
                   </div>
-                  <p 
-                    style={{ 
-                      fontSize: 12, 
-                      color: '#6b7f7a',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      margin: 0
-                    }}
-                  >
-                    {chat.preview}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
-          {currentChat ? (
-            <>
-              <div 
-                style={{
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #e2efec',
-                  background: '#F9FCFB'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', margin: 0, marginBottom: 2 }}>
-                      {currentChat.name}
-                    </h3>
-                    <p style={{ fontSize: 12, color: '#6b7f7a', margin: 0 }}>Cliente</p>
-                  </div>
-                  <div style={{ textAlign: 'right', fontSize: 11 }}>
-                    <p style={{ margin: '0 0 3px 0', color: '#1a1a1a', fontWeight: 700 }}>
-                      Interés: Compra mayorista
-                    </p>
-                    <p style={{ margin: 0, color: '#6b7f7a' }}>
-                      Probabilidad: Alta
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div 
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  overflowY: 'auto',
-                  background: '#F9FCFB',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-              >
-                {currentChat.messages.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {currentChat.messages.map((msg) => (
-                      <div 
-                        key={msg.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: msg.from === 'vendia' ? 'flex-end' : 'flex-start'
-                        }}
-                      >
-                        <div 
-                          style={{
-                            maxWidth: '75%',
-                            borderRadius: 8,
-                            padding: '9px 13px',
-                            background: msg.from === 'vendia' ? '#0f766e' : '#ffffff',
-                            color: msg.from === 'vendia' ? '#ffffff' : '#1a1a1a',
-                            border: msg.from === 'vendia' ? 'none' : '1px solid #e2efec',
-                            fontSize: 13,
-                            lineHeight: 1.4
-                          }}
-                        >
-                          <p style={{ margin: 0, marginBottom: 4 }}>
-                            {msg.text}
-                          </p>
-                          <p 
-                            style={{ 
-                              fontSize: 11, 
-                              color: msg.from === 'vendia' ? 'rgba(255,255,255,0.65)' : '#9ca3af',
-                              textAlign: 'right',
-                              margin: 0
-                            }}
-                          >
-                            {msg.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {currentChat.id === 2 && (
-                      <div 
-                        style={{
-                          background: '#E6F4EF',
-                          border: '1px solid #b8dfd0',
-                          borderRadius: 8,
-                          padding: 13,
-                          marginTop: 10
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'start', gap: 10 }}>
-                          <div 
-                            style={{
-                              width: 30,
-                              height: 30,
-                              background: '#0f766e',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#ffffff',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              flexShrink: 0
-                            }}
-                          >
-                            V
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, margin: '0 0 7px 0', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                              Vendia respondiendo
-                            </p>
-                            <div 
-                              style={{
-                                background: '#ffffff',
-                                padding: 9,
-                                borderRadius: 6,
-                                marginBottom: 9,
-                                border: '1px solid #d1e7dd',
-                                fontSize: 12,
-                                lineHeight: 1.4
-                              }}
-                            >
-                              <p style={{ margin: 0 }}>
-                                Hola María, claro. Podemos agendar tu cita para el martes a las 10am. ¿Te parece bien?
-                              </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: 7 }}>
-                              <button 
-                                style={{
-                                  padding: '7px 13px',
-                                  background: '#0f766e',
-                                  color: '#ffffff',
-                                  fontSize: 12,
-                                  borderRadius: 6,
-                                  border: 'none',
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Aprobar
-                              </button>
-                              <button 
-                                style={{
-                                  padding: '7px 13px',
-                                  background: '#ffffff',
-                                  color: '#5f7f7a',
-                                  fontSize: 12,
-                                  borderRadius: 6,
-                                  border: '1px solid #d1e7dd',
-                                  fontWeight: 600,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Editar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Status badge */}
+                  <div className="mt-1">
+                    {conv.status === 'new' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                        <AlertCircle className="w-3 h-3" />
+                        Nuevo
+                      </span>
+                    )}
+                    {conv.status === 'pending' && conv.hasAIResponse && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+                        <Clock className="w-3 h-3" />
+                        Pendiente aprobación
+                      </span>
                     )}
                   </div>
-                ) : (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    height: '100%',
-                    color: '#9ca3af',
-                    fontSize: 13
-                  }}>
-                    Sin mensajes
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Panel de chat - Derecha */}
+        <div className="flex-1 flex flex-col bg-slate-50 min-w-0">
+          {selectedConversation ? (
+            <>
+              {/* Header del chat */}
+              <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold">
+                    {selectedConversation.avatar}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">{selectedConversation.name}</h3>
+                    <p className="text-xs text-slate-500">Cliente • Alta intención de compra</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-xs font-medium">
+                    WhatsApp conectado
+                  </span>
+                </div>
+              </div>
+
+              {/* Mensajes */}
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                {/* Mensaje del cliente */}
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                    {selectedConversation.avatar}
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-3 max-w-[70%]">
+                      <p className="text-sm text-slate-800">{messages[0].text}</p>
+                      <div className="flex items-center justify-end gap-1 mt-1">
+                        <span className="text-xs text-slate-500">18:30</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sugerencia de IA */}
+                {selectedConversation.hasAIResponse && (
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-blue-900">Respuesta sugerida por IA</p>
+                        <p className="text-xs text-blue-700">Revisa y aprueba antes de enviar</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 mb-3">
+                      <p className="text-sm text-slate-800">{selectedConversation.aiSuggestion}</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+                        <Check className="w-4 h-4" />
+                        Aprobar y enviar
+                      </button>
+                      <button className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
+                        Editar respuesta
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div 
-                style={{
-                  padding: '11px 13px',
-                  borderTop: '1px solid #e2efec',
-                  background: '#ffffff'
-                }}
-              >
-                <div style={{ display: 'flex', gap: 7 }}>
-                  <input 
-                    type="text"
-                    placeholder="Escribe o deja que la IA responda..."
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      border: '1px solid #d1e7dd',
-                      borderRadius: 6,
-                      fontSize: 13,
-                      outline: 'none',
-                      background: '#F9FCFB'
-                    }}
-                  />
-                  <button 
-                    style={{
-                      padding: '8px 15px',
-                      background: '#0f766e',
-                      color: '#ffffff',
-                      borderRadius: 6,
-                      border: 'none',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontSize: 12
-                    }}
-                  >
-                    Enviar
+              {/* Input de mensaje */}
+              <div className="px-6 py-4 bg-white border-t border-slate-200 flex-shrink-0">
+                <div className="flex items-end gap-3">
+                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                    <Smile className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="flex-1">
+                    <textarea
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      placeholder="Escribe un mensaje o deja que la IA responda..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                      rows={1}
+                    />
+                  </div>
+                  
+                  <button className="p-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
+                    <Send className="w-5 h-5" />
                   </button>
                 </div>
+                
+                <p className="text-xs text-slate-500 mt-2">
+                  Presiona <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs">Enter</kbd> para enviar
+                </p>
               </div>
             </>
           ) : (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              height: '100%',
-              color: '#9ca3af',
-              fontSize: 13
-            }}>
-              Selecciona una conversación
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Selecciona una conversación</h3>
+                <p className="text-sm text-slate-500">Elige un chat para comenzar</p>
+              </div>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }
