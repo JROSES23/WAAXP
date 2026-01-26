@@ -1,10 +1,11 @@
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
     const config = await request.json();
 
+    const supabase = createClient()
     const { data, error } = await supabase
       .from('bot_config')
       .upsert({
