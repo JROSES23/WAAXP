@@ -11,6 +11,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  X,
 } from 'lucide-react'
 
 interface ProductosClientProps {
@@ -184,6 +185,22 @@ export default function ProductosClient({
     setCargando(false)
   }
 
+  const eliminarCategoria = async (categoriaId: string) => {
+    setCargando(true)
+    const { error } = await supabase.from('categories').delete().eq('id', categoriaId)
+    if (!error) {
+      setCategorias((estadoPrevio) =>
+        estadoPrevio.filter((categoria) => categoria.id !== categoriaId)
+      )
+      setProductos((estadoPrevio) =>
+        estadoPrevio.map((producto) =>
+          producto.categoria_id === categoriaId ? { ...producto, categoria_id: undefined } : producto
+        )
+      )
+    }
+    setCargando(false)
+  }
+
   const subirImagenes = async (productoId: string) => {
     const nuevasUrls: string[] = []
     const archivos = archivosSeleccionados.slice(0, 2)
@@ -305,9 +322,9 @@ export default function ProductosClient({
     setCargando(true)
     const { error } = await supabase.from('products').delete().eq('id', productoId)
     if (!error) {
-    setProductos((estadoPrevio) =>
-      estadoPrevio.filter((producto) => producto.id !== productoId)
-    )
+      setProductos((estadoPrevio) =>
+        estadoPrevio.filter((producto) => producto.id !== productoId)
+      )
     }
     setCargando(false)
   }
@@ -315,14 +332,24 @@ export default function ProductosClient({
   const obtenerColorTipo = (tipo: TipoProducto) => {
     switch (tipo) {
       case 'producto':
-        return 'bg-blue-100 text-blue-700'
+        return 'bg-emerald-100 text-emerald-700'
       case 'servicio':
-        return 'bg-green-100 text-green-700'
+        return 'bg-blue-100 text-blue-700'
       case 'reserva':
-        return 'bg-purple-100 text-purple-700'
+        return 'bg-orange-100 text-orange-700'
       default:
         return 'bg-slate-100 text-slate-700'
     }
+  }
+
+  const obtenerTextoTipo = (tipo: TipoProducto) => {
+    if (tipo === 'producto') {
+      return 'Producto'
+    }
+    if (tipo === 'servicio') {
+      return 'Servicio'
+    }
+    return 'Reserva'
   }
 
   const obtenerIconoTipo = (tipo: TipoProducto) => {
@@ -345,15 +372,15 @@ export default function ProductosClient({
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="bg-gradient-to-br from-white to-emerald-50 border border-emerald-100 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <p className="text-xs text-slate-500">Productos activos</p>
           <p className="text-2xl font-bold text-slate-900">{totalActivos}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="bg-gradient-to-br from-white to-amber-50 border border-amber-100 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <p className="text-xs text-slate-500">Stock bajo</p>
           <p className="text-2xl font-bold text-amber-600">{productosStockBajo}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <p className="text-xs text-slate-500">Sin foto</p>
           <p className="text-2xl font-bold text-slate-900">{productosSinFoto}</p>
         </div>
@@ -386,11 +413,40 @@ export default function ProductosClient({
         </div>
         <button
           onClick={abrirModalNuevoProducto}
-          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e] hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
           Nuevo producto
         </button>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900">Categorías activas</h3>
+          <span className="text-xs text-slate-500">{categorias.length} registradas</span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {categorias.length === 0 ? (
+            <span className="text-xs text-slate-400">Aún no hay categorías.</span>
+          ) : (
+            categorias.map((categoria) => (
+              <span
+                key={categoria.id}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+              >
+                {categoria.nombre}
+                <button
+                  type="button"
+                  onClick={() => eliminarCategoria(categoria.id)}
+                  className="rounded-full p-0.5 text-red-500 hover:bg-red-50"
+                  aria-label={`Eliminar categoría ${categoria.nombre}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -457,7 +513,7 @@ export default function ProductosClient({
                           )}`}
                         >
                           {obtenerIconoTipo(producto.tipo)}
-                          {producto.tipo}
+                          {obtenerTextoTipo(producto.tipo)}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">
@@ -488,14 +544,14 @@ export default function ProductosClient({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => abrirModalEditar(producto)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
                           >
                             <Pencil className="h-3 w-3" />
                             Editar
                           </button>
                           <button
                             onClick={() => eliminarProducto(producto.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 transition-all duration-300 hover:bg-red-50"
                           >
                             <Trash2 className="h-3 w-3" />
                             Eliminar
@@ -524,27 +580,45 @@ export default function ProductosClient({
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-700">Nombre</label>
-                <input
-                  value={formulario.nombre}
-                  onChange={(event) =>
-                    setFormulario((estado) => ({ ...estado, nombre: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    id="nombre-producto"
+                    value={formulario.nombre}
+                    onChange={(event) =>
+                      setFormulario((estado) => ({ ...estado, nombre: event.target.value }))
+                    }
+                    placeholder=" "
+                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                  />
+                  <label
+                    htmlFor="nombre-producto"
+                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                  >
+                    Nombre
+                  </label>
+                </div>
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-700">Descripción</label>
-                <textarea
-                  value={formulario.descripcion}
-                  onChange={(event) =>
-                    setFormulario((estado) => ({ ...estado, descripcion: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  rows={3}
-                />
+                <div className="relative">
+                  <textarea
+                    id="descripcion-producto"
+                    value={formulario.descripcion}
+                    onChange={(event) =>
+                      setFormulario((estado) => ({ ...estado, descripcion: event.target.value }))
+                    }
+                    placeholder=" "
+                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                    rows={3}
+                  />
+                  <label
+                    htmlFor="descripcion-producto"
+                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                  >
+                    Descripción
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-slate-700">Tipo de ítem</label>
@@ -565,7 +639,7 @@ export default function ProductosClient({
                       }
                     })
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   <option value="producto">Producto</option>
                   <option value="servicio">Servicio</option>
@@ -577,7 +651,7 @@ export default function ProductosClient({
                 <select
                   value={formulario.categoria_id ?? ''}
                   onChange={(event) => manejarSeleccionCategoria(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   <option value="">Sin categoría</option>
                   {categorias.map((categoria) => (
@@ -589,18 +663,27 @@ export default function ProductosClient({
                 </select>
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700">Precio</label>
-                <input
-                  type="number"
-                  value={formulario.precio}
-                  onChange={(event) =>
-                    setFormulario((estado) => ({
-                      ...estado,
-                      precio: Number(event.target.value),
-                    }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    id="precio-producto"
+                    type="number"
+                    value={formulario.precio}
+                    onChange={(event) =>
+                      setFormulario((estado) => ({
+                        ...estado,
+                        precio: Number(event.target.value),
+                      }))
+                    }
+                    placeholder=" "
+                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                  />
+                  <label
+                    htmlFor="precio-producto"
+                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                  >
+                    Precio
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-slate-700">Moneda</label>
@@ -612,7 +695,7 @@ export default function ProductosClient({
                       moneda: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   {MONEDAS.map((moneda) => (
                     <option key={moneda} value={moneda}>
@@ -624,65 +707,99 @@ export default function ProductosClient({
               {formulario.tipo === 'producto' ? (
                 <>
                   <div>
-                    <label className="text-sm font-semibold text-slate-700">Stock</label>
-                    <input
-                      type="number"
-                      value={formulario.stock ?? 0}
-                      onChange={(event) =>
-                        setFormulario((estado) => ({
-                          ...estado,
-                          stock: Number(event.target.value),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        id="stock-producto"
+                        type="number"
+                        value={formulario.stock ?? 0}
+                        onChange={(event) =>
+                          setFormulario((estado) => ({
+                            ...estado,
+                            stock: Number(event.target.value),
+                          }))
+                        }
+                        placeholder=" "
+                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                      <label
+                        htmlFor="stock-producto"
+                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                      >
+                        Stock
+                      </label>
+                    </div>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-slate-700">
-                      Alerta de stock bajo
-                    </label>
-                    <input
-                      type="number"
-                      value={formulario.stock_alert_threshold ?? 0}
-                      onChange={(event) =>
-                        setFormulario((estado) => ({
-                          ...estado,
-                          stock_alert_threshold: Number(event.target.value),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        id="alerta-stock-producto"
+                        type="number"
+                        value={formulario.stock_alert_threshold ?? 0}
+                        onChange={(event) =>
+                          setFormulario((estado) => ({
+                            ...estado,
+                            stock_alert_threshold: Number(event.target.value),
+                          }))
+                        }
+                        placeholder=" "
+                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                      <label
+                        htmlFor="alerta-stock-producto"
+                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                      >
+                        Alerta de stock bajo
+                      </label>
+                    </div>
                   </div>
                 </>
               ) : (
                 <>
                   <div>
-                    <label className="text-sm font-semibold text-slate-700">Duración (min)</label>
-                    <input
-                      type="number"
-                      value={formulario.duracion_minutos ?? 0}
-                      onChange={(event) =>
-                        setFormulario((estado) => ({
-                          ...estado,
-                          duracion_minutos: Number(event.target.value),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        id="duracion-servicio"
+                        type="number"
+                        value={formulario.duracion_minutos ?? 0}
+                        onChange={(event) =>
+                          setFormulario((estado) => ({
+                            ...estado,
+                            duracion_minutos: Number(event.target.value),
+                          }))
+                        }
+                        placeholder=" "
+                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                      <label
+                        htmlFor="duracion-servicio"
+                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                      >
+                        Duración (min)
+                      </label>
+                    </div>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-slate-700">Capacidad</label>
-                    <input
-                      type="number"
-                      value={formulario.capacidad ?? 0}
-                      onChange={(event) =>
-                        setFormulario((estado) => ({
-                          ...estado,
-                          capacidad: Number(event.target.value),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        id="capacidad-servicio"
+                        type="number"
+                        value={formulario.capacidad ?? 0}
+                        onChange={(event) =>
+                          setFormulario((estado) => ({
+                            ...estado,
+                            capacidad: Number(event.target.value),
+                          }))
+                        }
+                        placeholder=" "
+                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                      <label
+                        htmlFor="capacidad-servicio"
+                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+                      >
+                        Capacidad
+                      </label>
+                    </div>
                   </div>
                 </>
               )}
@@ -696,7 +813,7 @@ export default function ProductosClient({
                     const archivos = Array.from(event.target.files ?? []).slice(0, 2)
                     setArchivosSeleccionados(archivos)
                   }}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
                 <p className="mt-1 text-xs text-slate-500">Máximo 2 imágenes.</p>
               </div>
@@ -705,14 +822,14 @@ export default function ProductosClient({
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={cerrarModalProducto}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={guardarProducto}
                 disabled={cargando}
-                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+                className="rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e] disabled:opacity-50"
               >
                 {cargando ? 'Guardando...' : 'Guardar'}
               </button>
@@ -727,22 +844,31 @@ export default function ProductosClient({
             <h3 className="text-lg font-semibold text-slate-900 mb-3">
               Nueva categoría
             </h3>
-            <input
-              value={nombreCategoriaNueva}
-              onChange={(event) => setNombreCategoriaNueva(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder="Nombre de categoría"
-            />
+            <div className="relative">
+              <input
+                id="categoria-nueva"
+                value={nombreCategoriaNueva}
+                onChange={(event) => setNombreCategoriaNueva(event.target.value)}
+                placeholder=" "
+                className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+              <label
+                htmlFor="categoria-nueva"
+                className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
+              >
+                Nombre de categoría
+              </label>
+            </div>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 onClick={() => setModalCategoriaAbierto(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={crearCategoria}
-                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e]"
               >
                 Crear
               </button>

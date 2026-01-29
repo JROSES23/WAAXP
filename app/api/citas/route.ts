@@ -35,6 +35,40 @@ export async function POST(solicitud: Request) {
     return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 })
   }
 
+  // 🔒 VALIDACIÓN DE SEGURIDAD: Verificar que el servicio pertenece al negocio
+  const { data: servicio, error: errorServicio } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', idServicio)
+    .eq('business_id', negocio.id)
+    .eq('tipo', 'servicio')
+    .single()
+
+  if (errorServicio || !servicio) {
+    return NextResponse.json(
+      { error: 'Servicio no encontrado o no pertenece a tu negocio' },
+      { status: 403 }
+    )
+  }
+
+  // 🔒 VALIDACIÓN DE SEGURIDAD: Verificar que el staff pertenece al negocio (si existe)
+  if (idStaff) {
+    const { data: staff, error: errorStaff } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('id', idStaff)
+      .eq('business_id', negocio.id)
+      .single()
+
+    if (errorStaff || !staff) {
+      return NextResponse.json(
+        { error: 'Staff no encontrado o no pertenece a tu negocio' },
+        { status: 403 }
+      )
+    }
+  }
+
+  // Ahora SÍ crear la cita
   const { error: errorCita } = await supabase.from('appointments').insert({
     business_id: negocio.id,
     cliente_nombre: conversacion.client_name,

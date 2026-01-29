@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Conversacion, Mensaje, Negocio, Producto, Staff } from '@/app/dashboard/types'
 import { Badge } from '@/components/ui/Badge'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Calendar,
+  ChevronDown,
   Check,
   ClipboardList,
   MessageSquare,
@@ -13,6 +15,7 @@ import {
   Send,
   ShoppingCart,
   User,
+  X,
 } from 'lucide-react'
 
 interface InboxProps {
@@ -48,6 +51,8 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
   const [productoSeleccionado, setProductoSeleccionado] = useState('')
   const [cantidadProducto, setCantidadProducto] = useState(1)
   const [itemsPedido, setItemsPedido] = useState<ItemPedidoTemporal[]>([])
+  const [mostrarAgendar, setMostrarAgendar] = useState(true)
+  const [mostrarPedido, setMostrarPedido] = useState(true)
 
   const conversacionSeleccionada = conversaciones.find(
     (conversacion) => conversacion.id === conversacionSeleccionadaId
@@ -171,6 +176,10 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
     setCantidadProducto(1)
   }
 
+  const removerItemPedido = (index: number) => {
+    setItemsPedido((estadoPrevio) => estadoPrevio.filter((_, idx) => idx !== index))
+  }
+
   const crearPedido = async () => {
     if (!conversacionSeleccionadaId || itemsPedido.length === 0) {
       return
@@ -239,7 +248,7 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
                   Última actividad: {conversacion.last_message_at || 'Sin mensajes'}
                 </p>
               </button>
-            ))}
+            </div>
           </div>
         </aside>
 
@@ -297,7 +306,7 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
               />
               <button
                 onClick={() => enviarMensaje(mensajeManual)}
-                className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e]"
               >
                 <Send className="h-4 w-4" />
                 Enviar
@@ -342,115 +351,171 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
 
           {modosServiciosActivos && (
             <div className="p-4 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Agendar cita</h3>
-              <div className="space-y-2">
-                <select
-                  value={servicioSeleccionado}
-                  onChange={(event) => setServicioSeleccionado(event.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Selecciona un servicio</option>
-                  {serviciosDisponibles.map((servicio) => (
-                    <option key={servicio.id} value={servicio.id}>
-                      {servicio.nombre}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={staffSeleccionado}
-                  onChange={(event) => setStaffSeleccionado(event.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Cualquiera</option>
-                  {equipo.map((persona) => (
-                    <option key={persona.id} value={persona.id}>
-                      {persona.nombre}
-                    </option>
-                  ))}
-                </select>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="date"
-                    value={fechaCita}
-                    onChange={(event) => setFechaCita(event.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="time"
-                    value={horaCita}
-                    onChange={(event) => setHoraCita(event.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <button
-                  onClick={confirmarCita}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Confirmar cita
-                </button>
-              </div>
+              <button
+                onClick={() => setMostrarAgendar((estado) => !estado)}
+                className="flex w-full items-center justify-between text-sm font-semibold text-slate-900"
+              >
+                Agendar cita
+                <ChevronDown
+                  className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${
+                    mostrarAgendar ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              <AnimatePresence initial={false}>
+                {mostrarAgendar && (
+                  <motion.div
+                    key="agendar"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 space-y-2">
+                      <select
+                        value={servicioSeleccionado}
+                        onChange={(event) => setServicioSeleccionado(event.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecciona un servicio</option>
+                        {serviciosDisponibles.map((servicio) => (
+                          <option key={servicio.id} value={servicio.id}>
+                            {servicio.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={staffSeleccionado}
+                        onChange={(event) => setStaffSeleccionado(event.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Cualquiera</option>
+                        {equipo.map((persona) => (
+                          <option key={persona.id} value={persona.id}>
+                            {persona.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={fechaCita}
+                          onChange={(event) => setFechaCita(event.target.value)}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        />
+                        <input
+                          type="time"
+                          value={horaCita}
+                          onChange={(event) => setHoraCita(event.target.value)}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={confirmarCita}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-slate-950"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        Confirmar cita
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
           {modosProductosActivos && (
             <div className="p-4 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Crear pedido</h3>
-              <div className="space-y-2">
-                <select
-                  value={productoSeleccionado}
-                  onChange={(event) => setProductoSeleccionado(event.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productosDisponibles.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    value={cantidadProducto}
-                    onChange={(event) => setCantidadProducto(Number(event.target.value))}
-                    className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  />
-                  <button
-                    onClick={agregarItemPedido}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              <button
+                onClick={() => setMostrarPedido((estado) => !estado)}
+                className="flex w-full items-center justify-between text-sm font-semibold text-slate-900"
+              >
+                Crear pedido
+                <ChevronDown
+                  className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${
+                    mostrarPedido ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              <AnimatePresence initial={false}>
+                {mostrarPedido && (
+                  <motion.div
+                    key="pedido"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
                   >
-                    <ShoppingCart className="h-4 w-4" />
-                    Agregar item
-                  </button>
-                </div>
-                {itemsPedido.length > 0 && (
-                  <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-600 space-y-2">
-                    {itemsPedido.map((itemPedido, index) => (
-                      <div key={`${itemPedido.idProducto}-${index}`} className="flex justify-between">
-                        <span>
-                          {itemPedido.nombre} x{itemPedido.cantidad}
-                        </span>
-                        <span>
-                          {(itemPedido.cantidad * itemPedido.precioUnitario).toLocaleString()} CLP
-                        </span>
+                    <div className="mt-3 space-y-2">
+                      <select
+                        value={productoSeleccionado}
+                        onChange={(event) => setProductoSeleccionado(event.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productosDisponibles.map((producto) => (
+                          <option key={producto.id} value={producto.id}>
+                            {producto.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          value={cantidadProducto}
+                          onChange={(event) => setCantidadProducto(Number(event.target.value))}
+                          className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        />
+                        <button
+                          onClick={agregarItemPedido}
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm transition-all duration-300 hover:bg-slate-50"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                          Agregar item
+                        </button>
                       </div>
-                    ))}
-                    <div className="flex justify-between font-semibold text-slate-900">
-                      <span>Total</span>
-                      <span>{totalPedido.toLocaleString()} CLP</span>
+                      {itemsPedido.length > 0 && (
+                        <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-600 space-y-2">
+                          {itemsPedido.map((itemPedido, index) => (
+                            <div key={`${itemPedido.idProducto}-${index}`} className="flex justify-between">
+                              <span>
+                                {itemPedido.nombre} x{itemPedido.cantidad}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span>
+                                  {(itemPedido.cantidad * itemPedido.precioUnitario).toLocaleString()} CLP
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removerItemPedido(index)}
+                                  className="rounded-full p-0.5 text-red-500 hover:bg-red-50"
+                                  aria-label={`Eliminar ${itemPedido.nombre}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="flex justify-between font-semibold text-slate-900">
+                            <span>Total</span>
+                            <span>{totalPedido.toLocaleString()} CLP</span>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={crearPedido}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0f9d58] px-3 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e]"
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        Crear pedido
+                      </button>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
-                <button
-                  onClick={crearPedido}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white"
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  Crear pedido
-                </button>
-              </div>
+              </AnimatePresence>
             </div>
           )}
 

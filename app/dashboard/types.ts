@@ -1,5 +1,15 @@
 export type TipoProducto = 'producto' | 'servicio' | 'reserva'
-export type VerticalNegocio = 'retail' | 'salon' | 'restaurant' | 'services' | 'other'
+export type VerticalNegocio =
+  | 'retail'
+  | 'salon'
+  | 'restaurant'
+  | 'services'
+  | 'other'
+  | 'tienda'
+  | 'delivery'
+  | 'eventos'
+  | 'restaurante'
+  | (string & {})
 
 export interface Negocio {
   id: string

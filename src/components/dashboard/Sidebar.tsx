@@ -82,8 +82,8 @@ export default function Sidebar({
             <Link
               key={pestana.id}
               href={pestana.href}
-              className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                estaActivo ? 'bg-teal-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
+              className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                estaActivo ? 'bg-[#0f9d58] text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               <Icono className={`w-5 h-5 transition-transform ${
@@ -93,7 +93,7 @@ export default function Sidebar({
               {pestana.id === 'inbox' && conversacionesPendientes > 0 && (
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    estaActivo ? 'bg-white text-teal-600' : 'bg-teal-100 text-teal-700'
+                    estaActivo ? 'bg-white text-[#0f9d58]' : 'bg-emerald-100 text-emerald-700'
                   }`}
                 >
                   {conversacionesPendientes}
@@ -106,9 +106,9 @@ export default function Sidebar({
         <div className="pt-4 mt-4 border-t border-slate-200">
           <Link
             href="/dashboard/configuracion"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
               pathname.startsWith('/dashboard/configuracion')
-                ? 'bg-teal-600 text-white shadow-md'
+                ? 'bg-[#0f9d58] text-white shadow-md'
                 : 'text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -151,27 +151,28 @@ export default function Sidebar({
       </div>
 
       <div className="p-4 border-t border-slate-200">
-        <div className="bg-slate-800 rounded-lg p-4 text-white">
-          <div className="flex items-center justify-between mb-3">
+        <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-4 text-slate-900 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs text-slate-400">Plan actual</p>
-              <p className="text-sm font-bold">{planActual}</p>
+              <p className="text-xs font-semibold text-emerald-600">Plan actual</p>
+              <p className="text-sm font-bold text-slate-900">Plan actual: {planActual}</p>
+              <p className="mt-1 text-xs text-slate-500">{usoPorcentaje}% / 100% uso mensual</p>
             </div>
-            <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-5 h-5" />
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-emerald-100">
+              <BarChart3 className="w-5 h-5 text-emerald-600" />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">Uso mensual</span>
-              <span className="font-bold">{usoPorcentaje}%</span>
-            </div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="mt-3 space-y-2">
+            <div className="h-2 bg-emerald-100 rounded-full overflow-hidden">
               <div
-                className="h-2 bg-teal-400 rounded-full"
+                className="h-2 bg-[#0f9d58] rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, usoPorcentaje)}%` }}
               />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span>0%</span>
+              <span>100%</span>
             </div>
           </div>
         </div>
