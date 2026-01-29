@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
+import { Button } from '@/components/ui/Button'
+
+export const dynamic = 'force-dynamic'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,12 +16,23 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLogin, setIsLogin] = useState(true) // Toggle entre login/registro
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+    return createClient()
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!supabase) {
+      setLoading(false)
+      setError('Configura las variables de Supabase para iniciar sesión.')
+      return
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -39,6 +53,12 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!supabase) {
+      setLoading(false)
+      setError('Configura las variables de Supabase para registrarte.')
+      return
+    }
 
     // Registrar usuario
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -92,7 +112,10 @@ export default function LoginPage() {
 
         {/* Mensajes de Error */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div
+            role="alert"
+            className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
+          >
             {error}
           </div>
         )}
@@ -128,7 +151,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/30 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -137,7 +160,7 @@ export default function LoginPage() {
               ? (isLogin ? 'Ingresando...' : 'Creando cuenta...') 
               : (isLogin ? 'Iniciar sesión' : 'Crear cuenta')
             }
-          </button>
+          </Button>
         </form>
 
         {/* Toggle Login/Registro */}

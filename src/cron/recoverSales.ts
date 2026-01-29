@@ -1,6 +1,11 @@
 // src/cron/recoverSales.ts
 import { pool } from '../db/connection';
 
+type QuoteRow = {
+    id: string;
+    items: Array<{ nombre: string }>;
+};
+
 async function recuperarVentas() {
     console.log("🕵️  Buscando clientes indecisos...");
 
@@ -8,7 +13,7 @@ async function recuperarVentas() {
         // Buscamos cotizaciones que sigan 'enviada' (no compraron)
         // En la vida real usaríamos una fecha (ej: hace 30 min). 
         // Para el test, traemos TODAS las enviadas.
-        const res = await pool.query(
+        const res = await pool.query<QuoteRow>(
             "SELECT * FROM quotes WHERE status = 'enviada' LIMIT 5"
         );
 

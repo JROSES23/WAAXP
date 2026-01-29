@@ -1,316 +1,463 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, Check, AlertCircle, Send, Paperclip, Smile, Clock } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import type { Conversacion, Mensaje, Negocio, Producto, Staff } from '@/app/dashboard/types'
+import { Badge } from '@/components/ui/Badge'
+import {
+  Calendar,
+  Check,
+  ClipboardList,
+  MessageSquare,
+  Phone,
+  Search,
+  Send,
+  ShoppingCart,
+  User,
+} from 'lucide-react'
 
-interface Conversation {
-  id: string
-  name: string
-  lastMessage: string
-  time: string
-  unread: boolean
-  status: 'new' | 'pending' | 'active' | 'closed'
-  avatar: string
-  hasAIResponse: boolean
-  aiSuggestion?: string
+interface InboxProps {
+  negocio: Negocio
+  conversaciones: Conversacion[]
+  productos: Producto[]
+  equipo: Staff[]
 }
 
-export default function Inbox() {
-  const [selectedConv, setSelectedConv] = useState<string>('juan-perez')
-  const [messageInput, setMessageInput] = useState('')
+interface ItemPedidoTemporal {
+  idProducto: string
+  nombre: string
+  cantidad: number
+  precioUnitario: number
+}
 
-  const conversations: Conversation[] = [
-    {
-      id: 'juan-perez',
-      name: 'Juan Pérez',
-      lastMessage: 'Hola, quería saber el precio del producto',
-      time: '2 min',
-      unread: true,
-      status: 'new',
-      avatar: 'J',
-      hasAIResponse: true,
-      aiSuggestion: 'Hola Juan, el precio del producto Premium es $45.000 CLP. Incluye envío gratis a todo Chile. ¿Te gustaría proceder con la compra?'
-    },
-    {
-      id: 'maria-lopez',
-      name: 'María López',
-      lastMessage: '¿Tienen stock del modelo anterior?',
-      time: '15 min',
-      unread: true,
-      status: 'pending',
-      avatar: 'M',
-      hasAIResponse: true,
-      aiSuggestion: 'Hola María, sí tenemos 5 unidades disponibles del modelo anterior a $32.000 CLP.'
-    },
-    {
-      id: 'ferreteria',
-      name: 'Ferretería San Luis',
-      lastMessage: 'Necesito cotización para 50 unidades',
-      time: '1h',
-      unread: false,
-      status: 'pending',
-      avatar: 'F',
-      hasAIResponse: true,
-      aiSuggestion: 'Para compras mayoristas de 50+ unidades ofrecemos precio especial de $38.000 por unidad.'
-    },
-    {
-      id: 'carlos',
-      name: 'Carlos Muñoz',
-      lastMessage: 'Gracias por la atención',
-      time: '2h',
-      unread: false,
-      status: 'closed',
-      avatar: 'C',
-      hasAIResponse: false
-    },
-  ]
+export default function Inbox({ negocio, conversaciones, productos, equipo }: InboxProps) {
+  const [conversacionSeleccionadaId, setConversacionSeleccionadaId] = useState<string | null>(
+    conversaciones[0]?.id ?? null
+  )
+  const [mensajes, setMensajes] = useState<Mensaje[]>([])
+  const [cargandoMensajes, setCargandoMensajes] = useState(false)
+  const [mensajeManual, setMensajeManual] = useState('')
+  const [sugerencia, setSugerencia] = useState<string | null>(null)
+  const [cargandoSugerencia, setCargandoSugerencia] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const selectedConversation = conversations.find(c => c.id === selectedConv)
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
+  const [staffSeleccionado, setStaffSeleccionado] = useState('')
+  const [fechaCita, setFechaCita] = useState('')
+  const [horaCita, setHoraCita] = useState('')
 
-  const messages = [
-    {
-      id: 1,
-      sender: 'client',
-      text: 'Hola, quería saber el precio del producto',
-      time: '18:30',
-      status: 'read'
-    },
-  ]
+  const [productoSeleccionado, setProductoSeleccionado] = useState('')
+  const [cantidadProducto, setCantidadProducto] = useState(1)
+  const [itemsPedido, setItemsPedido] = useState<ItemPedidoTemporal[]>([])
+
+  const conversacionSeleccionada = conversaciones.find(
+    (conversacion) => conversacion.id === conversacionSeleccionadaId
+  )
+  const metadataTexto = conversacionSeleccionada?.metadata
+    ? JSON.stringify(conversacionSeleccionada.metadata)
+    : 'Sin etiquetas'
+
+  const modosServiciosActivos = negocio.modos_activos?.some(
+    (modo) => modo === 'servicios' || modo === 'reservas'
+  )
+  const modosProductosActivos = negocio.modos_activos?.includes('productos')
+
+  const serviciosDisponibles = productos.filter(
+    (producto) => producto.tipo === 'servicio' || producto.tipo === 'reserva'
+  )
+  const productosDisponibles = productos.filter(
+    (producto) => producto.tipo === 'producto'
+  )
+
+  const totalPedido = itemsPedido.reduce(
+    (sum, itemPedido) => sum + itemPedido.cantidad * itemPedido.precioUnitario,
+    0
+  )
+
+  const cargarMensajes = async (id: string) => {
+    setCargandoMensajes(true)
+    setError(null)
+    try {
+      const respuesta = await fetch(`/api/conversaciones/${id}/mensajes`)
+      const datos = await respuesta.json()
+      if (!respuesta.ok) {
+        throw new Error(datos.error || 'No se pudieron cargar los mensajes')
+      }
+      setMensajes(datos.mensajes ?? [])
+    } catch (errorCarga) {
+      setError('No se pudieron cargar los mensajes de la conversación.')
+    } finally {
+      setCargandoMensajes(false)
+    }
+  }
+
+  const cargarSugerencia = async (id: string) => {
+    setCargandoSugerencia(true)
+    try {
+      const respuesta = await fetch(`/api/conversaciones/${id}/sugerencia`)
+      const datos = await respuesta.json()
+      if (respuesta.ok) {
+        setSugerencia(datos.sugerencia)
+      }
+    } catch {
+      setSugerencia(null)
+    } finally {
+      setCargandoSugerencia(false)
+    }
+  }
+
+  useEffect(() => {
+    if (conversacionSeleccionadaId) {
+      cargarMensajes(conversacionSeleccionadaId)
+      cargarSugerencia(conversacionSeleccionadaId)
+    }
+  }, [conversacionSeleccionadaId])
+
+  const enviarMensaje = async (contenido: string) => {
+    if (!conversacionSeleccionadaId || !contenido.trim()) {
+      return
+    }
+    await fetch(`/api/conversaciones/${conversacionSeleccionadaId}/mensajes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contenido, rol: 'assistant' }),
+    })
+    setMensajeManual('')
+    await cargarMensajes(conversacionSeleccionadaId)
+  }
+
+  const confirmarCita = async () => {
+    if (!conversacionSeleccionadaId || !servicioSeleccionado || !fechaCita || !horaCita) {
+      setError('Completa servicio, fecha y hora para agendar.')
+      return
+    }
+    const fechaHora = `${fechaCita}T${horaCita}:00`
+    await fetch('/api/citas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idConversacion: conversacionSeleccionadaId,
+        idServicio: servicioSeleccionado,
+        idStaff: staffSeleccionado || null,
+        fechaHora,
+      }),
+    })
+    setFechaCita('')
+    setHoraCita('')
+    setServicioSeleccionado('')
+    setStaffSeleccionado('')
+    await cargarMensajes(conversacionSeleccionadaId)
+  }
+
+  const agregarItemPedido = () => {
+    if (!productoSeleccionado || cantidadProducto <= 0) {
+      return
+    }
+    const producto = productosDisponibles.find(
+      (producto) => producto.id === productoSeleccionado
+    )
+    if (!producto) {
+      return
+    }
+    setItemsPedido((estadoPrevio) => [
+      ...estadoPrevio,
+      {
+        idProducto: producto.id,
+        nombre: producto.nombre,
+        cantidad: cantidadProducto,
+        precioUnitario: producto.precio,
+      },
+    ])
+    setProductoSeleccionado('')
+    setCantidadProducto(1)
+  }
+
+  const crearPedido = async () => {
+    if (!conversacionSeleccionadaId || itemsPedido.length === 0) {
+      return
+    }
+    await fetch('/api/pedidos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idConversacion: conversacionSeleccionadaId,
+        itemsPedido: itemsPedido.map((itemPedido) => ({
+          idProducto: itemPedido.idProducto,
+          cantidad: itemPedido.cantidad,
+        })),
+        moneda: 'CLP',
+      }),
+    })
+    setItemsPedido([])
+    await cargarMensajes(conversacionSeleccionadaId)
+  }
+
+  const estadoBadge = (estado: Conversacion['status']) => {
+    switch (estado) {
+      case 'pending_approval':
+        return <Badge variant="warning">Pendiente aprobación</Badge>
+      case 'archived':
+        return <Badge variant="neutral">Archivado</Badge>
+      default:
+        return <Badge variant="success">Activo</Badge>
+    }
+  }
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      {/* Header único del Inbox */}
-      <div className="border-b border-slate-200 px-6 py-4 bg-white flex-shrink-0">
-        <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Inbox</h1>
-            <p className="text-sm text-slate-600 mt-1">Gestiona todas tus conversaciones</p>
-          </div>
-          
-          {/* Filtros rápidos */}
-          <div className="flex items-center gap-2">
-            <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 transition-colors">
-              Nuevos (3)
-            </button>
-            <button className="px-4 py-2 bg-white text-slate-700 rounded-lg font-medium text-sm border border-slate-200 hover:bg-slate-50 transition-colors">
-              En curso
-            </button>
-            <button className="px-4 py-2 bg-white text-slate-700 rounded-lg font-medium text-sm border border-slate-200 hover:bg-slate-50 transition-colors">
-              Archivados
-            </button>
-          </div>
-        </div>
+      <div className="border-b border-slate-200 px-6 py-4">
+        <h1 className="text-2xl font-bold text-slate-900">Bandeja de entrada</h1>
+        <p className="text-sm text-slate-600">Conversaciones con clientes en tiempo real</p>
       </div>
 
-      {/* Contenedor principal del chat */}
-      <div className="flex flex-1 max-w-[1800px] mx-auto w-full overflow-hidden">
-        {/* Lista de conversaciones - Izquierda */}
-        <div className="w-[380px] border-r border-slate-200 flex flex-col bg-white flex-shrink-0">
-          {/* Header de conversaciones */}
-          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-            <h2 className="text-base font-semibold text-slate-900 mb-3">Conversaciones</h2>
-            
-            {/* Search */}
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-[320px] border-r border-slate-200 flex flex-col">
+          <div className="p-4 border-b border-slate-200">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type="text"
-                placeholder="Buscar conversación..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="Buscar conversación"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm"
               />
             </div>
-
-            {/* Filtros */}
-            <div className="flex gap-2 mt-3">
-              <button className="px-3 py-1 bg-teal-600 text-white rounded-md text-xs font-medium">
-                Nuevos (2)
-              </button>
-              <button className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-medium hover:bg-slate-50">
-                Pendientes
-              </button>
-              <button className="px-3 py-1 bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-medium hover:bg-slate-50">
-                Todos
-              </button>
-            </div>
           </div>
-
-          {/* Lista de conversaciones */}
           <div className="flex-1 overflow-y-auto">
-            {conversations.map((conv) => (
+            {conversaciones.map((conversacion) => (
               <button
-                key={conv.id}
-                onClick={() => setSelectedConv(conv.id)}
-                className={`w-full flex items-start gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                  selectedConv === conv.id ? 'bg-slate-100' : ''
+                key={conversacion.id}
+                onClick={() => setConversacionSeleccionadaId(conversacion.id)}
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${
+                  conversacionSeleccionadaId === conversacion.id ? 'bg-slate-50' : ''
                 }`}
               >
-                {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                  {conv.avatar}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {conversacion.client_name || conversacion.phone_number}
+                  </p>
+                  {estadoBadge(conversacion.status)}
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className={`text-sm font-semibold truncate ${
-                      conv.unread ? 'text-slate-900' : 'text-slate-600'
-                    }`}>
-                      {conv.name}
-                    </h3>
-                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{conv.time}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <p className={`text-xs truncate ${
-                      conv.unread ? 'text-slate-600 font-medium' : 'text-slate-500'
-                    }`}>
-                      {conv.lastMessage}
-                    </p>
-                    
-                    {conv.unread && (
-                      <span className="w-5 h-5 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ml-2">
-                        1
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Status badge */}
-                  <div className="mt-1">
-                    {conv.status === 'new' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        <AlertCircle className="w-3 h-3" />
-                        Nuevo
-                      </span>
-                    )}
-                    {conv.status === 'pending' && conv.hasAIResponse && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
-                        <Clock className="w-3 h-3" />
-                        Pendiente aprobación
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Última actividad: {conversacion.last_message_at || 'Sin mensajes'}
+                </p>
               </button>
             ))}
           </div>
-        </div>
+        </aside>
 
-        {/* Panel de chat - Derecha */}
-        <div className="flex-1 flex flex-col bg-slate-50 min-w-0">
-          {selectedConversation ? (
-            <>
-              {/* Header del chat */}
-              <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold">
-                    {selectedConversation.avatar}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">{selectedConversation.name}</h3>
-                    <p className="text-xs text-slate-500">Cliente • Alta intención de compra</p>
-                  </div>
-                </div>
+        <section className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {conversacionSeleccionada?.client_name || 'Selecciona una conversación'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {conversacionSeleccionada?.phone_number || ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <MessageSquare className="w-4 h-4" />
+              {mensajes.length} mensajes
+            </div>
+          </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-xs font-medium">
-                    WhatsApp conectado
-                  </span>
-                </div>
+          <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+            {cargandoMensajes ? (
+              <p className="text-sm text-slate-500">Cargando mensajes...</p>
+            ) : mensajes.length === 0 ? (
+              <p className="text-sm text-slate-500">No hay mensajes aún.</p>
+            ) : (
+              <div className="space-y-3">
+                {mensajes.map((mensaje) => (
+                  <div
+                    key={mensaje.id}
+                    className={`flex ${mensaje.role === 'assistant' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-xl px-4 py-2 text-sm shadow-sm ${
+                        mensaje.role === 'assistant'
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-white text-slate-800'
+                      }`}
+                    >
+                      {mensaje.content}
+                    </div>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
 
-              {/* Mensajes */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                {/* Mensaje del cliente */}
-                <div className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                    {selectedConversation.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-3 max-w-[70%]">
-                      <p className="text-sm text-slate-800">{messages[0].text}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-xs text-slate-500">18:30</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          <div className="border-t border-slate-200 p-4">
+            <div className="flex items-center gap-2">
+              <textarea
+                value={mensajeManual}
+                onChange={(event) => setMensajeManual(event.target.value)}
+                placeholder="Escribe una respuesta"
+                className="flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                rows={2}
+              />
+              <button
+                onClick={() => enviarMensaje(mensajeManual)}
+                className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                <Send className="h-4 w-4" />
+                Enviar
+              </button>
+            </div>
+          </div>
+        </section>
 
-                {/* Sugerencia de IA */}
-                {selectedConversation.hasAIResponse && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-blue-900">Respuesta sugerida por IA</p>
-                        <p className="text-xs text-blue-700">Revisa y aprueba antes de enviar</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-3 mb-3">
-                      <p className="text-sm text-slate-800">{selectedConversation.aiSuggestion}</p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-                        <Check className="w-4 h-4" />
-                        Aprobar y enviar
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
-                        Editar respuesta
-                      </button>
-                    </div>
-                  </div>
-                )}
+        <aside className="w-[360px] border-l border-slate-200 bg-white overflow-y-auto">
+          <div className="p-4 border-b border-slate-200">
+            <h2 className="text-sm font-semibold text-slate-900">Detalle del cliente</h2>
+            <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-slate-400" />
+                {conversacionSeleccionada?.client_name || 'Sin nombre'}
               </div>
-
-              {/* Input de mensaje */}
-              <div className="px-6 py-4 bg-white border-t border-slate-200 flex-shrink-0">
-                <div className="flex items-end gap-3">
-                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                    <Paperclip className="w-5 h-5" />
-                  </button>
-                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                    <Smile className="w-5 h-5" />
-                  </button>
-                  
-                  <div className="flex-1">
-                    <textarea
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="Escribe un mensaje o deja que la IA responda..."
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                      rows={1}
-                    />
-                  </div>
-                  
-                  <button className="p-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <p className="text-xs text-slate-500 mt-2">
-                  Presiona <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs">Enter</kbd> para enviar
-                </p>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-slate-400" />
+                {conversacionSeleccionada?.phone_number || 'Sin teléfono'}
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+              <div className="text-xs text-slate-500">
+                Etiquetas: {metadataTexto}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-b border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">Respuesta sugerida</h3>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              {cargandoSugerencia
+                ? 'Buscando plantillas...'
+                : sugerencia || 'La IA sugerirá una respuesta aquí (próximamente).'}
+            </div>
+            <button
+              onClick={() => sugerencia && enviarMensaje(sugerencia)}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              <Check className="h-3 w-3" />
+              Aprobar y enviar
+            </button>
+          </div>
+
+          {modosServiciosActivos && (
+            <div className="p-4 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Agendar cita</h3>
+              <div className="space-y-2">
+                <select
+                  value={servicioSeleccionado}
+                  onChange={(event) => setServicioSeleccionado(event.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Selecciona un servicio</option>
+                  {serviciosDisponibles.map((servicio) => (
+                    <option key={servicio.id} value={servicio.id}>
+                      {servicio.nombre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={staffSeleccionado}
+                  onChange={(event) => setStaffSeleccionado(event.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Cualquiera</option>
+                  {equipo.map((persona) => (
+                    <option key={persona.id} value={persona.id}>
+                      {persona.nombre}
+                    </option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={fechaCita}
+                    onChange={(event) => setFechaCita(event.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="time"
+                    value={horaCita}
+                    onChange={(event) => setHoraCita(event.target.value)}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Selecciona una conversación</h3>
-                <p className="text-sm text-slate-500">Elige un chat para comenzar</p>
+                <button
+                  onClick={confirmarCita}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                >
+                  <Calendar className="h-4 w-4" />
+                  Confirmar cita
+                </button>
               </div>
             </div>
           )}
-        </div>
+
+          {modosProductosActivos && (
+            <div className="p-4 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Crear pedido</h3>
+              <div className="space-y-2">
+                <select
+                  value={productoSeleccionado}
+                  onChange={(event) => setProductoSeleccionado(event.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Selecciona un producto</option>
+                  {productosDisponibles.map((producto) => (
+                    <option key={producto.id} value={producto.id}>
+                      {producto.nombre}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={cantidadProducto}
+                    onChange={(event) => setCantidadProducto(Number(event.target.value))}
+                    className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={agregarItemPedido}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Agregar item
+                  </button>
+                </div>
+                {itemsPedido.length > 0 && (
+                  <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-600 space-y-2">
+                    {itemsPedido.map((itemPedido, index) => (
+                      <div key={`${itemPedido.idProducto}-${index}`} className="flex justify-between">
+                        <span>
+                          {itemPedido.nombre} x{itemPedido.cantidad}
+                        </span>
+                        <span>
+                          {(itemPedido.cantidad * itemPedido.precioUnitario).toLocaleString()} CLP
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-semibold text-slate-900">
+                      <span>Total</span>
+                      <span>{totalPedido.toLocaleString()} CLP</span>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={crearPedido}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Crear pedido
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 text-xs text-red-600">{error}</div>
+          )}
+        </aside>
       </div>
     </div>
   )

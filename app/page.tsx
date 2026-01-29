@@ -2,25 +2,19 @@
 
 import Link from 'next/link'
 import Logo from '@/components/Logo'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Mail, Phone, X, Play } from 'lucide-react'
-import Image from 'next/image'
+import { ChevronDown, Mail, Phone, Play, X } from 'lucide-react'
+import HeroSection from '@/components/HeroSection'
+import DashboardPreview from '@/components/DashboardPreview'
+import SavingsCalculator from '@/components/SavingsCalculator'
+import FeaturesGrid from '@/components/FeaturesGrid'
 
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false)
   const [isVideoOpen, setIsVideoOpen] = useState(false)
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [roiInputs, setRoiInputs] = useState({ mensajes: 50, precio: 15000 })
-  const router = useRouter()
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const tiempoAhorrado = Math.round((roiInputs.mensajes * 3) / 60)
   const costoVendedor = 500000
@@ -77,99 +71,7 @@ export default function LandingPage() {
         </div>
       </motion.nav>
 
-      {/* Hero Section MEJORADO con Dashboard */}
-      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1D3557]/10 via-[#F1FAEE] to-[#0ABAB5]/5"></div>
-        
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Texto Izquierda */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <h1 className="text-5xl lg:text-6xl font-bold text-[#2D3748] leading-tight mb-6">
-                Automatiza tu WhatsApp y vende 24/7 sin contratar más vendedores
-              </h1>
-              <p className="text-xl text-slate-600 leading-relaxed mb-8">
-                Atiende cientos de clientes simultáneamente, genera cotizaciones automáticas y cierra ventas mientras duermes. 
-                Tu asistente IA trabaja sin descanso.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-                  <Link 
-                    href="/login"
-                    className="px-8 py-4 bg-[#0ABAB5] text-white font-bold rounded-lg hover:bg-[#089a96] hover:shadow-xl hover:shadow-[#0ABAB5]/30 transition-all text-center inline-block"
-                  >
-                    Comenzar prueba gratuita
-                  </Link>
-                </motion.div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsVideoOpen(true)}
-                  className="px-8 py-4 bg-white text-[#2D3748] font-bold rounded-lg border-2 border-slate-200 hover:border-[#0ABAB5] hover:shadow-lg transition-all inline-flex items-center justify-center gap-2"
-                >
-                  <Play className="w-5 h-5 text-[#0ABAB5]" />
-                  Ver demostración
-                </motion.button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#0ABAB5]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">14 días gratis</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#0ABAB5]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Datos protegidos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#0ABAB5]" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Setup en 5 minutos</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Dashboard Screenshot Derecha */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
-                {/* REEMPLAZA '/dashboard-screenshot.png' con tu imagen real */}
-                <Image 
-                  src="/images/dashboard.png" 
-                  alt="Dashboard Operly"
-                  width={800}
-                  height={600}
-                  className="w-full h-auto"
-                  priority
-                />
-                {/* Overlay sutil */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#0ABAB5]/10 to-transparent pointer-events-none"></div>
-              </div>
-              
-              {/* Decoración flotante */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-[#0ABAB5] to-[#A8DADC] rounded-full blur-2xl opacity-50"
-              ></motion.div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+      <HeroSection onOpenVideo={() => setIsVideoOpen(true)} />
 
       {/* Modal Video */}
       <AnimatePresence>
@@ -409,221 +311,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Preview CON SCREENSHOT REAL */}
-      <section className="py-20 px-6 lg:px-8 bg-[#F1FAEE]">
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-bold text-[#2D3748] mb-4">
-              Un panel que lo controla todo
-            </h2>
-            <p className="text-xl text-slate-600">
-              Interfaz intuitiva diseñada para vendedores, no programadores
-            </p>
-          </motion.div>
+      <DashboardPreview />
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="relative"
-          >
-            {/* SCREENSHOT DASHBOARD REAL */}
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border-8 border-white">
-              <Image 
-                src="/images/dashboard.png" 
-                alt="Panel de Control Operly"
-                width={1200}
-                height={800}
-                className="w-full h-auto"
-              />
-              
-              {/* Overlay gradiente sutil */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1D3557]/20 via-transparent to-transparent pointer-events-none"></div>
-              
-              {/* Badge flotante */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4 }}
-                className="absolute top-6 right-6 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-slate-200"
-              >
-                <p className="text-sm font-bold text-[#0ABAB5]">✨ Vista en tiempo real</p>
-              </motion.div>
-            </div>
+      <SavingsCalculator
+        roiInputs={roiInputs}
+        onChange={setRoiInputs}
+        tiempoAhorrado={tiempoAhorrado}
+        ahorroMensual={ahorroMensual}
+        ventasExtras={ventasExtras}
+      />
 
-            {/* Features flotantes */}
-            <div className="grid md:grid-cols-3 gap-4 mt-8">
-              {[
-                { icon: '📊', title: 'Analytics detallados', desc: 'Métricas en vivo' },
-                { icon: '🤖', title: 'IA integrada', desc: 'Respuestas automáticas' },
-                { icon: '⚡', title: 'Súper rápido', desc: 'Carga instantánea' }
-              ].map((feat, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
-                  className="bg-white p-4 rounded-xl border border-slate-200 hover:border-[#0ABAB5] transition-all"
-                >
-                  <div className="text-2xl mb-2">{feat.icon}</div>
-                  <h4 className="font-bold text-[#2D3748] text-sm mb-1">{feat.title}</h4>
-                  <p className="text-xs text-slate-600">{feat.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Calculadora ROI SIMPLIFICADA */}
-      <section id="como-funciona" className="py-20 px-6 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-bold text-[#2D3748] mb-4">
-              Calcula tu ahorro con Operly
-            </h2>
-            <p className="text-xl text-slate-600">
-              Descubre cuánto tiempo y dinero puedes ahorrar
-            </p>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-br from-[#F1FAEE] to-white rounded-2xl p-8 lg:p-12 border-2 border-[#0ABAB5]/20 shadow-xl"
-          >
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <label className="block text-sm font-semibold text-[#2D3748] mb-2">
-                  Mensajes por día
-                </label>
-                <input
-                  type="number"
-                  value={roiInputs.mensajes}
-                  onChange={(e) => setRoiInputs({ ...roiInputs, mensajes: Number(e.target.value) })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-[#2D3748] focus:outline-none focus:border-[#0ABAB5] transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#2D3748] mb-2">
-                  Precio promedio producto ($)
-                </label>
-                <input
-                  type="number"
-                  value={roiInputs.precio}
-                  onChange={(e) => setRoiInputs({ ...roiInputs, precio: Number(e.target.value) })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-[#2D3748] focus:outline-none focus:border-[#0ABAB5] transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { label: 'Tiempo ahorrado/día', value: `${tiempoAhorrado}h`, icon: '⏱️', color: 'from-[#0ABAB5] to-[#A8DADC]' },
-                { label: 'Ahorro vs vendedor', value: `$${ahorroMensual.toLocaleString()}`, icon: '💰', color: 'from-[#1D3557] to-[#2D3748]' },
-                { label: 'Ventas extras/mes', value: `$${ventasExtras.toLocaleString()}`, icon: '📈', color: 'from-[#A8DADC] to-[#0ABAB5]' }
-              ].map((metric, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  whileHover={{ scale: 1.05 }}
-                  className={`bg-gradient-to-br ${metric.color} p-6 rounded-xl text-white text-center shadow-lg`}
-                >
-                  <div className="text-3xl mb-2">{metric.icon}</div>
-                  <p className="text-sm opacity-90 mb-2">{metric.label}</p>
-                  <p className="text-3xl font-bold">{metric.value}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Características */}
-      <section id="caracteristicas" className="py-20 px-6 bg-[#F1FAEE]">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold text-[#2D3748] mb-4">
-              Herramientas profesionales diseñadas para equipos de ventas modernos
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Inbox Centralizado',
-                desc: 'Gestiona todas las conversaciones de WhatsApp en una interfaz tipo email. Filtra, busca y organiza eficientemente.',
-                icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
-              },
-              {
-                title: 'Aprobaciones Inteligentes',
-                desc: 'Revisa y aprueba cotizaciones generadas automáticamente por IA antes de enviarlas a los clientes.',
-                icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-              },
-              {
-                title: 'Analytics en Tiempo Real',
-                desc: 'Métricas de ventas, tasa de conversión y desempeño del bot actualizadas en vivo.',
-                icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
-              },
-              {
-                title: 'Alertas Personalizadas',
-                desc: 'Notificaciones automáticas cuando un cliente necesita atención humana o está listo para comprar.',
-                icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-              },
-              {
-                title: 'Gestión de Equipo',
-                desc: 'Asigna conversaciones a vendedores específicos. Controla permisos y monitorea el desempeño individual.',
-                icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
-              },
-              {
-                title: 'Integraciones Nativas',
-                desc: 'Conecta con tu CRM, ERP y herramientas existentes. Sincronización automática de datos.',
-                icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
-              }
-            ].map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -8 }}
-                className="bg-white p-8 rounded-2xl border border-slate-200 hover:border-[#0ABAB5] hover:shadow-xl transition-all"
-              >
-                <div className="w-12 h-12 bg-gradient-to-br from-[#0ABAB5] to-[#A8DADC] rounded-lg flex items-center justify-center mb-6">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={feature.icon} />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-[#2D3748] mb-3">{feature.title}</h3>
-                <p className="text-slate-600">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FeaturesGrid />
 
       {/* Cómo Funciona - 4 Pasos */}
       <section className="py-20 px-6 bg-white">
