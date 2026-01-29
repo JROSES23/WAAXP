@@ -1,13 +1,22 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
+import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LogoutButton() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+    return createClient()
+  }, [])
 
   const handleLogout = async () => {
+    if (!supabase) {
+      return
+    }
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

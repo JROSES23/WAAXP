@@ -5,7 +5,7 @@ import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 interface DashboardClientProps {
   user: User
@@ -30,9 +30,17 @@ interface ConversationPreviewProps {
 
 export default function DashboardClient({ user }: DashboardClientProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+    return createClient()
+  }, [])
 
   const handleLogout = async () => {
+    if (!supabase) {
+      return
+    }
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

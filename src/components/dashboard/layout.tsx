@@ -1,6 +1,6 @@
 'use client'
 import Sidebar from "@/components/dashboard/Sidebar";
-import Metrics from './Metrics'
+import Metrics from './metrics'
 import Inbox from './inbox/Inbox'
 
 

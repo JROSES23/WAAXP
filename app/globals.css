@@ -6,6 +6,11 @@
   :root {
     --radius: 0.5rem;
   }
+
+  body {
+    font-family: "Geist", "Geist Mono", system-ui, -apple-system, "Segoe UI",
+      sans-serif;
+  }
 }
 
 @keyframes fade-up {

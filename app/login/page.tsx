@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
+
+export const dynamic = 'force-dynamic'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -13,12 +15,23 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLogin, setIsLogin] = useState(true) // Toggle entre login/registro
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+    return createClient()
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!supabase) {
+      setLoading(false)
+      setError('Configura las variables de Supabase para iniciar sesión.')
+      return
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -39,6 +52,12 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!supabase) {
+      setLoading(false)
+      setError('Configura las variables de Supabase para registrarte.')
+      return
+    }
 
     // Registrar usuario
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
