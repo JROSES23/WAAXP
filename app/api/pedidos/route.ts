@@ -39,6 +39,20 @@ export async function POST(solicitud: Request) {
     return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 })
   }
 
+  const requestedIds = itemsPedido.map((itemPedido) => itemPedido.idProducto)
+  const { data: validProducts } = await supabase
+    .from('products')
+    .select('id')
+    .in('id', requestedIds)
+    .eq('business_id', negocio.id)
+
+  if (!validProducts || validProducts.length !== requestedIds.length) {
+    return NextResponse.json(
+      { error: 'Uno o más productos no pertenecen a tu negocio' },
+      { status: 403 }
+    )
+  }
+
   const idsProductos = itemsPedido.map((itemPedido) => itemPedido.idProducto)
   const { data: productos, error: errorProductos } = await supabase
     .from('products')
