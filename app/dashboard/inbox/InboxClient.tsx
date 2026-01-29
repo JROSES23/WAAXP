@@ -1,16 +1,24 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
 import Inbox from '@/app/dashboard/inbox/Inbox'
+import type { Conversacion, Negocio, Producto, Staff } from '@/app/dashboard/types'
 
 interface InboxClientProps {
-  user: User
+  negocio: Negocio
+  conversaciones: Conversacion[]
+  productos: Producto[]
+  equipo: Staff[]
 }
 
-export default function InboxClient({ user }: InboxClientProps) {
+export default function InboxClient({ negocio, conversaciones, productos, equipo }: InboxClientProps) {
   return (
     <div className="h-screen bg-white overflow-hidden">
-      <Inbox />
+      <Inbox
+        negocio={negocio}
+        conversaciones={conversaciones}
+        productos={productos}
+        equipo={equipo}
+      />
     </div>
   )
 }
