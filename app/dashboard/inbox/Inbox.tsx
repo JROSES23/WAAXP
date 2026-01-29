@@ -248,7 +248,7 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
                   Última actividad: {conversacion.last_message_at || 'Sin mensajes'}
                 </p>
               </button>
-            ))}
+            </div>
           </div>
         </aside>
 
