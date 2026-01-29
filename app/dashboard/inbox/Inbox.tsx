@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, Check, AlertCircle, Send, Paperclip, Smile, Clock } from 'lucide-react'
+import { Badge } from '@/components/ui/Badge'
 
 interface Conversation {
   id: string
@@ -18,6 +19,7 @@ interface Conversation {
 export default function Inbox() {
   const [selectedConv, setSelectedConv] = useState<string>('juan-perez')
   const [messageInput, setMessageInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const conversations: Conversation[] = [
     {
@@ -77,10 +79,31 @@ export default function Inbox() {
     },
   ]
 
+  useEffect(() => {
+    if (!selectedConv) {
+      return
+    }
+
+    if (!isLoading) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [selectedConv, isLoading])
+
+  const handleSelectConversation = (id: string) => {
+    setIsLoading(true)
+    setSelectedConv(id)
+  }
+
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Header único del Inbox */}
-      <div className="border-b border-slate-200 px-6 py-4 bg-white flex-shrink-0">
+      <div className="border-b border-slate-200 px-6 py-5 bg-white flex-shrink-0">
         <div className="flex items-center justify-between max-w-[1800px] mx-auto">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Inbox</h1>
@@ -107,7 +130,7 @@ export default function Inbox() {
         {/* Lista de conversaciones - Izquierda */}
         <div className="w-[380px] border-r border-slate-200 flex flex-col bg-white flex-shrink-0">
           {/* Header de conversaciones */}
-          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+          <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
             <h2 className="text-base font-semibold text-slate-900 mb-3">Conversaciones</h2>
             
             {/* Search */}
@@ -139,8 +162,8 @@ export default function Inbox() {
             {conversations.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => setSelectedConv(conv.id)}
-                className={`w-full flex items-start gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                onClick={() => handleSelectConversation(conv.id)}
+                className={`w-full flex items-start gap-3 px-5 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
                   selectedConv === conv.id ? 'bg-slate-100' : ''
                 }`}
               >
@@ -175,18 +198,18 @@ export default function Inbox() {
                   </div>
 
                   {/* Status badge */}
-                  <div className="mt-1">
+                  <div className="mt-2">
                     {conv.status === 'new' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      <Badge variant="success">
                         <AlertCircle className="w-3 h-3" />
                         Nuevo
-                      </span>
+                      </Badge>
                     )}
                     {conv.status === 'pending' && conv.hasAIResponse && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+                      <Badge variant="warning" className="border border-amber-300/70 bg-amber-100/80">
                         <Clock className="w-3 h-3" />
                         Pendiente aprobación
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -199,103 +222,119 @@ export default function Inbox() {
         <div className="flex-1 flex flex-col bg-slate-50 min-w-0">
           {selectedConversation ? (
             <>
-              {/* Header del chat */}
-              <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold">
-                    {selectedConversation.avatar}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">{selectedConversation.name}</h3>
-                    <p className="text-xs text-slate-500">Cliente • Alta intención de compra</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-xs font-medium">
-                    WhatsApp conectado
-                  </span>
-                </div>
-              </div>
-
-              {/* Mensajes */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-                {/* Mensaje del cliente */}
-                <div className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                    {selectedConversation.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-3 max-w-[70%]">
-                      <p className="text-sm text-slate-800">{messages[0].text}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-xs text-slate-500">18:30</span>
-                      </div>
+              {isLoading ? (
+                <div className="flex-1 animate-pulse">
+                  <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 bg-slate-200 rounded w-40" />
+                      <div className="h-2.5 bg-slate-200 rounded w-52" />
                     </div>
                   </div>
+                  <div className="p-6 space-y-4">
+                    <div className="h-20 bg-white rounded-xl border border-slate-200" />
+                    <div className="h-32 bg-white rounded-xl border border-slate-200" />
+                  </div>
                 </div>
-
-                {/* Sugerencia de IA */}
-                {selectedConversation.hasAIResponse && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+              ) : (
+                <>
+                  {/* Header del chat */}
+                  <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold">
+                        {selectedConversation.avatar}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-blue-900">Respuesta sugerida por IA</p>
-                        <p className="text-xs text-blue-700">Revisa y aprueba antes de enviar</p>
+                        <h3 className="text-sm font-semibold text-slate-900">{selectedConversation.name}</h3>
+                        <p className="text-xs text-slate-500">Cliente • Alta intención de compra</p>
                       </div>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-3 mb-3">
-                      <p className="text-sm text-slate-800">{selectedConversation.aiSuggestion}</p>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <button className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-                        <Check className="w-4 h-4" />
-                        Aprobar y enviar
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
-                        Editar respuesta
-                      </button>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="success">WhatsApp conectado</Badge>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Input de mensaje */}
-              <div className="px-6 py-4 bg-white border-t border-slate-200 flex-shrink-0">
-                <div className="flex items-end gap-3">
-                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                    <Paperclip className="w-5 h-5" />
-                  </button>
-                  <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                    <Smile className="w-5 h-5" />
-                  </button>
-                  
-                  <div className="flex-1">
-                    <textarea
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="Escribe un mensaje o deja que la IA responda..."
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                      rows={1}
-                    />
+                  {/* Mensajes */}
+                  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                    {/* Mensaje del cliente */}
+                    <div className="flex items-start gap-2">
+                      <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                        {selectedConversation.avatar}
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-white border border-slate-200 rounded-lg rounded-tl-none p-3 max-w-[70%]">
+                          <p className="text-sm text-slate-800">{messages[0].text}</p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className="text-xs text-slate-500">18:30</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sugerencia de IA */}
+                    {selectedConversation.hasAIResponse && (
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-blue-900">Respuesta sugerida por IA</p>
+                            <p className="text-xs text-blue-700">Revisa y aprueba antes de enviar</p>
+                          </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-3 mb-3">
+                          <p className="text-sm text-slate-800">{selectedConversation.aiSuggestion}</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+                            <Check className="w-4 h-4" />
+                            Aprobar y enviar
+                          </button>
+                          <button className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
+                            Editar respuesta
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  <button className="p-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <p className="text-xs text-slate-500 mt-2">
-                  Presiona <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs">Enter</kbd> para enviar
-                </p>
-              </div>
+
+                  {/* Input de mensaje */}
+                  <div className="px-6 py-4 bg-white border-t border-slate-200 flex-shrink-0">
+                    <div className="flex items-end gap-3">
+                      <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                        <Paperclip className="w-5 h-5" />
+                      </button>
+                      <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                        <Smile className="w-5 h-5" />
+                      </button>
+
+                      <div className="flex-1">
+                        <textarea
+                          value={messageInput}
+                          onChange={(e) => setMessageInput(e.target.value)}
+                          placeholder="Escribe un mensaje o deja que la IA responda..."
+                          className="w-full px-4 py-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                          rows={1}
+                        />
+                      </div>
+
+                      <button className="p-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-500 mt-2">
+                      Presiona <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs">Enter</kbd> para enviar
+                    </p>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
