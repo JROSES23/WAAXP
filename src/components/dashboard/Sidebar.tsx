@@ -3,83 +3,68 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Logo from '@/components/Logo'
-import { 
-  LayoutDashboard,
+import {
+  BarChart3,
   Inbox,
-  Users, 
-  Package, 
-  TrendingUp, 
+  LayoutDashboard,
+  MessageSquare,
+  Package,
   Settings,
   Shield,
-  Zap,
-  MessageSquare,
-  BarChart3
+  TrendingUp,
+  Users,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
 
-const tabs = [
-  { 
-    id: 'dashboard', 
-    label: 'Dashboard', 
-    icon: LayoutDashboard, 
+interface SidebarProps {
+  conversacionesTotales: number
+  conversacionesPendientes: number
+  usoPorcentaje: number
+  planActual: string
+}
+
+const pestanas = [
+  {
+    id: 'dashboard',
+    label: 'Panel',
+    icon: LayoutDashboard,
     href: '/dashboard',
-    badge: null 
   },
-  { 
-    id: 'inbox', 
-    label: 'Inbox', 
-    icon: Inbox, 
+  {
+    id: 'inbox',
+    label: 'Bandeja',
+    icon: Inbox,
     href: '/dashboard/inbox',
-    badge: '3' 
   },
-  { 
-    id: 'clientes', 
-    label: 'Clientes', 
-    icon: Users, 
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    icon: Users,
     href: '/dashboard/clientes',
-    badge: null 
   },
-  { 
-    id: 'productos', 
-    label: 'Productos', 
-    icon: Package, 
+  {
+    id: 'productos',
+    label: 'Productos',
+    icon: Package,
     href: '/dashboard/productos',
-    badge: null 
   },
-  { 
-    id: 'reportes', 
-    label: 'Reportes', 
-    icon: TrendingUp, 
+  {
+    id: 'reportes',
+    label: 'Reportes',
+    icon: TrendingUp,
     href: '/dashboard/reportes',
-    badge: null 
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({
+  conversacionesTotales,
+  conversacionesPendientes,
+  usoPorcentaje,
+  planActual,
+}: SidebarProps) {
   const pathname = usePathname()
-  const [stats, setStats] = useState({
-    totalConversations: 0,
-    activeConversations: 0,
-    usagePercentage: 0
-  })
-
-  // Simular carga de datos reales (aquí conectarías con tu API/Supabase)
-  useEffect(() => {
-    // Simular llamada a API
-    const loadStats = async () => {
-      // Aquí harías: const data = await supabase.from('conversations').select()
-      setStats({
-        totalConversations: 847,
-        activeConversations: 12,
-        usagePercentage: 65
-      })
-    }
-    loadStats()
-  }, [])
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
-      {/* Header con Logo */}
       <div className="p-6 border-b border-slate-200">
         <Link href="/dashboard" className="block">
           <Logo size="md" showText={true} />
@@ -87,48 +72,43 @@ export default function Sidebar() {
         <p className="text-xs text-slate-500 mt-2">Panel de control</p>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          const isActive = pathname === tab.href || (pathname.startsWith(tab.href + '/') && tab.href !== '/dashboard')
-          
+        {pestanas.map((pestana) => {
+          const Icono = pestana.icon
+          const estaActivo =
+            pathname === pestana.href || (pathname.startsWith(pestana.href + '/') && pestana.href !== '/dashboard')
+
           return (
             <Link
-              key={tab.id}
-              href={tab.href}
-              className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                isActive 
-                  ? 'bg-teal-600 text-white shadow-md' 
-                  : 'text-slate-700 hover:bg-slate-50'
+              key={pestana.id}
+              href={pestana.href}
+              className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                estaActivo ? 'bg-[#0f9d58] text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              <Icon className={`w-5 h-5 transition-transform ${
-                isActive ? 'scale-110' : 'group-hover:scale-110'
+              <Icono className={`w-5 h-5 transition-transform ${
+                estaActivo ? 'scale-110' : 'group-hover:scale-110'
               }`} />
-              <span className="text-sm font-medium flex-1">{tab.label}</span>
-              
-              {/* Badge */}
-              {tab.badge && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                  isActive 
-                    ? 'bg-white text-teal-600' 
-                    : 'bg-teal-100 text-teal-700'
-                }`}>
-                  {tab.badge}
+              <span className="text-sm font-medium flex-1">{pestana.label}</span>
+              {pestana.id === 'inbox' && conversacionesPendientes > 0 && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    estaActivo ? 'bg-white text-[#0f9d58]' : 'bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {conversacionesPendientes}
                 </span>
               )}
             </Link>
           )
         })}
-        
-        {/* Configuración separada */}
+
         <div className="pt-4 mt-4 border-t border-slate-200">
           <Link
             href="/dashboard/configuracion"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
               pathname.startsWith('/dashboard/configuracion')
-                ? 'bg-teal-600 text-white shadow-md'
+                ? 'bg-[#0f9d58] text-white shadow-md'
                 : 'text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -138,12 +118,7 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* Status Cards */}
       <div className="p-4 border-t border-slate-200 space-y-2">
-      
-      
-
-        {/* Security Status */}
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-white">
@@ -160,61 +135,46 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Stats Card */}
       <div className="p-4 border-t border-slate-200">
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs text-slate-500">Este mes</p>
-              <p className="text-lg font-bold text-slate-900">{stats.totalConversations}</p>
+              <p className="text-lg font-bold text-slate-900">{conversacionesTotales}</p>
               <p className="text-xs text-slate-600">conversaciones</p>
             </div>
             <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
               <MessageSquare className="w-5 h-5 text-teal-600" />
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600">Activas ahora</span>
-              <span className="font-bold text-slate-900">{stats.activeConversations}</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Plan Info */}
       <div className="p-4 border-t border-slate-200">
-        <div className="bg-slate-800 rounded-lg p-4 text-white">
-          <div className="flex items-center justify-between mb-3">
+        <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-4 text-slate-900 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs text-slate-400">Plan actual</p>
-              <p className="text-sm font-bold">Pro</p>
+              <p className="text-xs font-semibold text-emerald-600">Plan actual</p>
+              <p className="text-sm font-bold text-slate-900">Plan actual: {planActual}</p>
+              <p className="mt-1 text-xs text-slate-500">{usoPorcentaje}% / 100% uso mensual</p>
             </div>
-            <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-5 h-5" />
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-emerald-100">
+              <BarChart3 className="w-5 h-5 text-emerald-600" />
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Uso mensual</span>
-              <span className="font-bold">{stats.usagePercentage}%</span>
+
+          <div className="mt-3 space-y-2">
+            <div className="h-2 bg-emerald-100 rounded-full overflow-hidden">
+              <div
+                className="h-2 bg-[#0f9d58] rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, usoPorcentaje)}%` }}
+              />
             </div>
-            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-teal-500 rounded-full transition-all duration-500" 
-                style={{ width: `${stats.usagePercentage}%` }}
-              ></div>
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span>0%</span>
+              <span>100%</span>
             </div>
-            <p className="text-xs text-slate-400">
-              {stats.totalConversations} de ∞ conversaciones
-            </p>
           </div>
-          
-          <button className="w-full mt-3 px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg text-xs font-semibold transition-colors border border-white/10">
-            Actualizar plan
-          </button>
         </div>
       </div>
     </aside>

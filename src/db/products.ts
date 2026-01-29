@@ -10,6 +10,8 @@ export interface Product {
     stock: number;
 }
 
+type ProductRow = Omit<Product, "price"> & { price: number | string };
+
 export const initializeProducts = async (businessId: string) => {
     console.log(`🔌 Sistema de productos conectado (Modo: PostgreSQL Full Text Search)`);
 };
@@ -26,7 +28,7 @@ export const findProducts = async (query: string): Promise<Product[]> => {
             AND stock > 0
         `;
 
-        const result = await pool.query(sql, [query]);
+        const result = await pool.query<ProductRow>(sql, [query]);
 
         return result.rows.map(row => ({
             ...row,

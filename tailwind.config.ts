@@ -8,7 +8,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Nueva paleta profesional turquesa/slate
+        // Paleta profesional turquesa/slate
+        brand: {
+          50: '#F1FAEE',
+          100: '#E5F5F3',
+          500: '#0ABAB5',
+          600: '#089A96',
+          700: '#067B78',
+          900: '#1D3557',
+        },
+        surface: '#FFFFFF',
+        muted: '#94A3B8',
         primary: '#0ABAB5',
         secondary: '#1D3557',
         accent: '#A8DADC',
