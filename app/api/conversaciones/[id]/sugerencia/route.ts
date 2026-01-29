@@ -11,8 +11,9 @@ const separarPalabras = (texto: string) =>
 
 export async function GET(
   _solicitud: Request,
-  { params: parametros }: { params: { id: string } }
+  { params: parametros }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await parametros
   const supabase = await createClient()
   const {
     data: { user: usuario },
@@ -27,7 +28,7 @@ export async function GET(
   const { data: conversacion, error: errorConversacion } = await supabase
     .from('conversations')
     .select('id, business_id')
-    .eq('id', parametros.id)
+    .eq('id', id)
     .single()
 
   if (errorConversacion || !conversacion || conversacion.business_id !== negocio.id) {
@@ -37,7 +38,7 @@ export async function GET(
   const { data: mensajes, error: errorMensajes } = await supabase
     .from('messages')
     .select('content, role')
-    .eq('conversation_id', parametros.id)
+    .eq('conversation_id', id)
     .order('timestamp', { ascending: false })
     .limit(20)
 

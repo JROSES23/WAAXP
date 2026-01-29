@@ -4,8 +4,9 @@ import { obtenerNegocioActual } from '@/app/dashboard/lib/data'
 
 export async function GET(
   _solicitud: Request,
-  { params: parametros }: { params: { id: string } }
+  { params: parametros }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await parametros
   const supabase = await createClient()
   const {
     data: { user: usuario },
@@ -19,7 +20,7 @@ export async function GET(
   const { data: conversacion, error: errorConversacion } = await supabase
     .from('conversations')
     .select('id, business_id')
-    .eq('id', parametros.id)
+    .eq('id', id)
     .single()
 
   if (errorConversacion || !conversacion || conversacion.business_id !== negocio.id) {
@@ -29,7 +30,7 @@ export async function GET(
   const { data: datosMensajes, error } = await supabase
     .from('messages')
     .select('*')
-    .eq('conversation_id', parametros.id)
+    .eq('conversation_id', id)
     .order('timestamp', { ascending: true })
 
   if (error) {
@@ -41,8 +42,9 @@ export async function GET(
 
 export async function POST(
   solicitud: Request,
-  { params: parametros }: { params: { id: string } }
+  { params: parametros }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await parametros
   const supabase = await createClient()
   const {
     data: { user: usuario },
@@ -63,7 +65,7 @@ export async function POST(
   const { data: conversacion, error: errorConversacion } = await supabase
     .from('conversations')
     .select('id, business_id')
-    .eq('id', parametros.id)
+    .eq('id', id)
     .single()
 
   if (errorConversacion || !conversacion || conversacion.business_id !== negocio.id) {
@@ -71,7 +73,7 @@ export async function POST(
   }
 
   const { error } = await supabase.from('messages').insert({
-    conversation_id: parametros.id,
+    conversation_id: id,
     business_id: negocio.id,
     role: rol,
     content: contenido,
