@@ -24,7 +24,7 @@ export default function Logo({ size = 'md', showText = true, className = '' }: L
         className="flex-shrink-0"
       >
         <defs>
-          <linearGradient id="operlyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="waaxpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#00897B"/>
             <stop offset="100%" stopColor="#00bfa5"/>
           </linearGradient>
@@ -32,7 +32,7 @@ export default function Logo({ size = 'md', showText = true, className = '' }: L
 
         {/* Burbuja trasera */}
         <path d="M330 90 C450 90 520 170 520 260 C520 360 440 420 360 430 L300 480 L310 430 C200 420 150 350 150 260 C150 160 230 90 330 90Z"
-              fill="url(#operlyGradient)"/>
+              fill="url(#waaxpGradient)"/>
 
         {/* Contorno interno */}
         <path d="M330 115 C430 115 485 180 485 255 C485 335 420 385 345 395 L310 430 L315 395 C230 385 185 330 185 255 C185 175 245 115 330 115Z"

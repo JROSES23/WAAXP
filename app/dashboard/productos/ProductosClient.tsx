@@ -2,250 +2,156 @@
 
 import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Categoria, Negocio, Producto, TipoProducto } from '@/app/dashboard/types'
-import {
-  Briefcase,
-  Calendar,
-  ImagePlus,
-  Package,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { Briefcase, Calendar, ImagePlus, Package, Pencil, Plus, Trash2, X, AlertTriangle } from 'lucide-react'
 
 interface ProductosClientProps {
-  negocio: Negocio
-  productosIniciales: Producto[]
+  negocio:             Negocio
+  productosIniciales:  Producto[]
   categoriasIniciales: Categoria[]
 }
 
 type FiltroTipo = 'todos' | TipoProducto
 
 type FormularioProducto = {
-  id?: string
-  nombre: string
-  descripcion: string
-  tipo: TipoProducto
-  precio: number
-  moneda: string
-  categoria_id: string | null
-  imagenes: string[]
-  stock: number | null
+  id?:                   string
+  nombre:                string
+  descripcion:           string
+  tipo:                  TipoProducto
+  precio:                number
+  moneda:                string
+  categoria_id:          string | null
+  imagenes:              string[]
+  stock:                 number | null
   stock_alert_threshold: number | null
-  duracion_minutos: number | null
-  capacidad: number | null
-  activo: boolean
+  duracion_minutos:      number | null
+  capacidad:             number | null
+  activo:                boolean
 }
 
-const MONEDAS = ['CLP', 'USD', 'MXN', 'ARS', 'COP', 'PEN', 'BRL', 'UYU']
+const MONEDAS   = ['CLP', 'USD', 'MXN', 'ARS', 'COP', 'PEN', 'BRL', 'UYU']
+const cardStyle = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '16px' }
+const modalOverlay = { background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }
 
-export default function ProductosClient({
-  negocio,
-  productosIniciales,
-  categoriasIniciales,
-}: ProductosClientProps) {
+const TIPO_CFG: Record<TipoProducto, { label: string; color: string; bg: string; border: string; icon: typeof Package }> = {
+  producto: { label: 'Producto', color: '#10B981', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.25)', icon: Package  },
+  servicio: { label: 'Servicio', color: '#3B82F6', bg: 'rgba(59,130,246,0.1)',   border: 'rgba(59,130,246,0.25)', icon: Briefcase },
+  reserva:  { label: 'Reserva',  color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.25)', icon: Calendar  },
+}
+
+export default function ProductosClient({ negocio, productosIniciales, categoriasIniciales }: ProductosClientProps) {
   const supabase = useMemo(() => createClient(), [])
-  const [productos, setProductos] = useState<Producto[]>(productosIniciales)
-  const [categorias, setCategorias] = useState<Categoria[]>(categoriasIniciales)
-  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
-  const [filtroCategoria, setFiltroCategoria] = useState<string>('todas')
-  const [modalProductoAbierto, setModalProductoAbierto] = useState(false)
-  const [modalCategoriaAbierto, setModalCategoriaAbierto] = useState(false)
+
+  const [productos,          setProductos]          = useState<Producto[]>(productosIniciales)
+  const [categorias,         setCategorias]         = useState<Categoria[]>(categoriasIniciales)
+  const [filtroTipo,         setFiltroTipo]         = useState<FiltroTipo>('todos')
+  const [filtroCategoria,    setFiltroCategoria]    = useState<string>('todas')
+  const [modalProducto,      setModalProducto]      = useState(false)
+  const [modalCategoria,     setModalCategoria]     = useState(false)
   const [nombreCategoriaNueva, setNombreCategoriaNueva] = useState('')
   const [archivosSeleccionados, setArchivosSeleccionados] = useState<File[]>([])
-  const [cargando, setCargando] = useState(false)
-  const [errorFormulario, setErrorFormulario] = useState<string | null>(null)
+  const [cargando,           setCargando]           = useState(false)
+  const [errorFormulario,    setErrorFormulario]    = useState<string | null>(null)
 
   const formularioInicial: FormularioProducto = {
-    nombre: '',
-    descripcion: '',
-    tipo: 'producto',
-    precio: 0,
-    moneda: 'CLP',
-    categoria_id: null,
-    imagenes: [],
-    stock: 0,
-    stock_alert_threshold: 0,
-    duracion_minutos: null,
-    capacidad: null,
-    activo: true,
+    nombre: '', descripcion: '', tipo: 'producto', precio: 0, moneda: 'CLP',
+    categoria_id: null, imagenes: [], stock: 0, stock_alert_threshold: 0,
+    duracion_minutos: null, capacidad: null, activo: true,
   }
 
   const [formulario, setFormulario] = useState<FormularioProducto>(formularioInicial)
 
-  const categoriasPorId = useMemo(() => {
-    return categorias.reduce<Record<string, Categoria>>((acc, categoria) => {
-      acc[categoria.id] = categoria
-      return acc
-    }, {})
-  }, [categorias])
+  const categoriasPorId = useMemo(() =>
+    categorias.reduce<Record<string, Categoria>>((acc, c) => { acc[c.id] = c; return acc }, {}),
+  [categorias])
 
-  const productosFiltrados = productos.filter((producto) => {
-    const coincideTipo = filtroTipo === 'todos' || producto.tipo === filtroTipo
-    const coincideCategoria =
-      filtroCategoria === 'todas' || producto.categoria_id === filtroCategoria
-    return coincideTipo && coincideCategoria
-  })
+  const productosFiltrados = productos.filter((p) =>
+    (filtroTipo === 'todos' || p.tipo === filtroTipo) &&
+    (filtroCategoria === 'todas' || p.categoria_id === filtroCategoria)
+  )
 
-  const totalActivos = productos.filter((producto) => producto.activo).length
-  const productosStockBajo = productos.filter(
-    (producto) =>
-      producto.tipo === 'producto' &&
-      typeof producto.stock === 'number' &&
-      typeof producto.stock_alert_threshold === 'number' &&
-      producto.stock <= producto.stock_alert_threshold
+  const totalActivos        = productos.filter((p) => p.activo).length
+  const productosStockBajo  = productos.filter((p) =>
+    p.tipo === 'producto' && typeof p.stock === 'number' && typeof p.stock_alert_threshold === 'number' && p.stock <= p.stock_alert_threshold
   ).length
-  const productosSinFoto = productos.filter(
-    (producto) => !producto.imagenes || producto.imagenes.length === 0
-  ).length
+  const productosSinFoto = productos.filter((p) => !p.imagenes || p.imagenes.length === 0).length
 
-  const abrirModalNuevoProducto = () => {
-    setFormulario({ ...formularioInicial })
-    setArchivosSeleccionados([])
-    setErrorFormulario(null)
-    setModalProductoAbierto(true)
-  }
-
-  const abrirModalEditar = (producto: Producto) => {
+  const abrirModalNuevo = () => { setFormulario({ ...formularioInicial }); setArchivosSeleccionados([]); setErrorFormulario(null); setModalProducto(true) }
+  const abrirModalEditar = (p: Producto) => {
     setFormulario({
-      id: producto.id,
-      nombre: producto.nombre,
-      descripcion: producto.descripcion ?? '',
-      tipo: producto.tipo,
-      precio: producto.precio,
-      moneda: producto.moneda,
-      categoria_id: producto.categoria_id ?? null,
-      imagenes: producto.imagenes ?? [],
-      stock: producto.stock ?? null,
-      stock_alert_threshold: producto.stock_alert_threshold ?? null,
-      duracion_minutos: producto.duracion_minutos ?? null,
-      capacidad: producto.capacidad ?? null,
-      activo: producto.activo,
+      id: p.id, nombre: p.nombre, descripcion: p.descripcion ?? '', tipo: p.tipo, precio: p.precio,
+      moneda: p.moneda, categoria_id: p.categoria_id ?? null, imagenes: p.imagenes ?? [],
+      stock: p.stock ?? null, stock_alert_threshold: p.stock_alert_threshold ?? null,
+      duracion_minutos: p.duracion_minutos ?? null, capacidad: p.capacidad ?? null, activo: p.activo,
     })
-    setArchivosSeleccionados([])
-    setErrorFormulario(null)
-    setModalProductoAbierto(true)
+    setArchivosSeleccionados([]); setErrorFormulario(null); setModalProducto(true)
   }
 
-  const cerrarModalProducto = () => {
-    setModalProductoAbierto(false)
-    setErrorFormulario(null)
-  }
-
-  const validarFormulario = () => {
-    if (!formulario.nombre.trim()) {
-      return 'El nombre es obligatorio.'
-    }
-    if (formulario.precio <= 0) {
-      return 'El precio debe ser mayor a 0.'
-    }
-    if (formulario.tipo === 'producto') {
-      if (formulario.stock === null || formulario.stock_alert_threshold === null) {
-        return 'Stock y alerta de stock son obligatorios para productos.'
-      }
-    }
-    if (formulario.tipo !== 'producto' && !formulario.duracion_minutos) {
+  const validar = () => {
+    if (!formulario.nombre.trim()) return 'El nombre es obligatorio.'
+    if (formulario.precio <= 0)   return 'El precio debe ser mayor a 0.'
+    if (formulario.tipo === 'producto' && (formulario.stock === null || formulario.stock_alert_threshold === null))
+      return 'Stock y alerta de stock son obligatorios para productos.'
+    if (formulario.tipo !== 'producto' && !formulario.duracion_minutos)
       return 'La duración es obligatoria para servicios o reservas.'
-    }
     return null
   }
 
-  const manejarSeleccionCategoria = (valor: string) => {
-    if (valor === 'nueva') {
-      setModalCategoriaAbierto(true)
-      return
-    }
-    setFormulario((estado) => ({ ...estado, categoria_id: valor || null }))
+  const manejarCategoria = (valor: string) => {
+    if (valor === 'nueva') { setModalCategoria(true); return }
+    setFormulario((e) => ({ ...e, categoria_id: valor || null }))
   }
 
   const crearCategoria = async () => {
-    if (!nombreCategoriaNueva.trim()) {
-      return
-    }
+    if (!nombreCategoriaNueva.trim()) return
     setCargando(true)
-    const tipoAplicacion =
-      formulario.tipo === 'producto' ? 'producto' : formulario.tipo === 'servicio' ? 'servicio' : 'servicio'
-    const { data: datosCategoria, error } = await supabase
-      .from('categories')
-      .insert({
-        business_id: negocio.id,
-        nombre: nombreCategoriaNueva.trim(),
-        tipo_aplicacion: tipoAplicacion,
-      })
-      .select('*')
-      .single()
-
-    if (!error && datosCategoria) {
-      setCategorias((estadoPrevio) => [datosCategoria as Categoria, ...estadoPrevio])
-      setFormulario((estado) => ({ ...estado, categoria_id: (datosCategoria as Categoria).id }))
-      setNombreCategoriaNueva('')
-      setModalCategoriaAbierto(false)
+    const tipoAplicacion = formulario.tipo === 'producto' ? 'producto' : 'servicio'
+    const { data, error } = await supabase.from('categories').insert({
+      business_id: negocio.id, nombre: nombreCategoriaNueva.trim(), tipo_aplicacion: tipoAplicacion,
+    }).select('*').single()
+    if (!error && data) {
+      setCategorias((p) => [data as Categoria, ...p])
+      setFormulario((e) => ({ ...e, categoria_id: (data as Categoria).id }))
+      setNombreCategoriaNueva(''); setModalCategoria(false)
     }
     setCargando(false)
   }
 
-  const eliminarCategoria = async (categoriaId: string) => {
+  const eliminarCategoria = async (id: string) => {
     setCargando(true)
-    const { error } = await supabase.from('categories').delete().eq('id', categoriaId)
+    const { error } = await supabase.from('categories').delete().eq('id', id)
     if (!error) {
-      setCategorias((estadoPrevio) =>
-        estadoPrevio.filter((categoria) => categoria.id !== categoriaId)
-      )
-      setProductos((estadoPrevio) =>
-        estadoPrevio.map((producto) =>
-          producto.categoria_id === categoriaId ? { ...producto, categoria_id: undefined } : producto
-        )
-      )
+      setCategorias((p) => p.filter((c) => c.id !== id))
+      setProductos((p) => p.map((prod) => prod.categoria_id === id ? { ...prod, categoria_id: undefined } : prod))
     }
     setCargando(false)
   }
 
   const subirImagenes = async (productoId: string) => {
-    const nuevasUrls: string[] = []
-    const archivos = archivosSeleccionados.slice(0, 2)
-
-    for (const archivo of archivos) {
-      const rutaArchivo = `${negocio.id}/${productoId}/${archivo.name}`
-      const { error } = await supabase.storage
-        .from('productos')
-        .upload(rutaArchivo, archivo, { upsert: true })
-
-      if (error) {
-        throw error
-      }
-
-      const { data: datosUrl } = supabase.storage.from('productos').getPublicUrl(rutaArchivo)
-      if (datosUrl?.publicUrl) {
-        nuevasUrls.push(datosUrl.publicUrl)
-      }
+    const urls: string[] = []
+    for (const archivo of archivosSeleccionados.slice(0, 2)) {
+      const ruta = `${negocio.id}/${productoId}/${archivo.name}`
+      const { error } = await supabase.storage.from('productos').upload(ruta, archivo, { upsert: true })
+      if (error) throw error
+      const { data } = supabase.storage.from('productos').getPublicUrl(ruta)
+      if (data?.publicUrl) urls.push(data.publicUrl)
     }
-
-    return nuevasUrls
+    return urls
   }
 
   const guardarProducto = async () => {
-    const error = validarFormulario()
-    if (error) {
-      setErrorFormulario(error)
-      return
-    }
-
-    setCargando(true)
-    setErrorFormulario(null)
+    const err = validar()
+    if (err) { setErrorFormulario(err); return }
+    setCargando(true); setErrorFormulario(null)
 
     const datosBase = {
-      business_id: negocio.id,
-      nombre: formulario.nombre.trim(),
-      descripcion: formulario.descripcion.trim() || null,
-      tipo: formulario.tipo,
-      precio: formulario.precio,
-      moneda: formulario.moneda,
-      categoria_id: formulario.categoria_id,
-      imagenes: formulario.imagenes,
+      business_id: negocio.id, nombre: formulario.nombre.trim(), descripcion: formulario.descripcion.trim() || null,
+      tipo: formulario.tipo, precio: formulario.precio, moneda: formulario.moneda,
+      categoria_id: formulario.categoria_id, imagenes: formulario.imagenes,
       stock: formulario.tipo === 'producto' ? formulario.stock : null,
-      stock_alert_threshold:
-        formulario.tipo === 'producto' ? formulario.stock_alert_threshold : null,
+      stock_alert_threshold: formulario.tipo === 'producto' ? formulario.stock_alert_threshold : null,
       duracion_minutos: formulario.tipo === 'producto' ? null : formulario.duracion_minutos,
       capacidad: formulario.tipo === 'producto' ? null : formulario.capacidad,
       activo: formulario.activo,
@@ -253,629 +159,354 @@ export default function ProductosClient({
 
     try {
       if (formulario.id) {
-        const { data: datosActualizados, error: errorActualizacion } = await supabase
-          .from('products')
-          .update(datosBase)
-          .eq('id', formulario.id)
-          .select('*, categories(nombre)')
-          .single()
-
-        if (errorActualizacion) {
-          throw errorActualizacion
-        }
-
-        let imagenesActualizadas = formulario.imagenes
+        const { data } = await supabase.from('products').update(datosBase).eq('id', formulario.id).select('*, categories(nombre)').single()
+        let imgs = formulario.imagenes
         if (archivosSeleccionados.length > 0) {
-          const nuevasUrls = await subirImagenes(formulario.id)
-          imagenesActualizadas = [...nuevasUrls].slice(0, 2)
-          await supabase
-            .from('products')
-            .update({ imagenes: imagenesActualizadas })
-            .eq('id', formulario.id)
+          imgs = (await subirImagenes(formulario.id)).slice(0, 2)
+          await supabase.from('products').update({ imagenes: imgs }).eq('id', formulario.id)
         }
-
-        setProductos((estadoPrevio) =>
-          estadoPrevio.map((producto) =>
-            producto.id === formulario.id
-              ? ({ ...datosActualizados, imagenes: imagenesActualizadas } as Producto)
-              : producto
-          )
-        )
+        setProductos((p) => p.map((prod) => prod.id === formulario.id ? { ...(data as Producto), imagenes: imgs } : prod))
       } else {
-        const { data: datosCreacion, error: errorCreacion } = await supabase
-          .from('products')
-          .insert({ ...datosBase, imagenes: [] })
-          .select('*, categories(nombre)')
-          .single()
-
-        if (errorCreacion || !datosCreacion) {
-          throw errorCreacion
-        }
-
-        let imagenesActualizadas: string[] = []
+        const { data } = await supabase.from('products').insert({ ...datosBase, imagenes: [] }).select('*, categories(nombre)').single()
+        if (!data) throw new Error('No data')
+        let imgs: string[] = []
         if (archivosSeleccionados.length > 0) {
-          const nuevasUrls = await subirImagenes((datosCreacion as Producto).id)
-          imagenesActualizadas = [...nuevasUrls].slice(0, 2)
-          await supabase
-            .from('products')
-            .update({ imagenes: imagenesActualizadas })
-            .eq('id', (datosCreacion as Producto).id)
+          imgs = (await subirImagenes((data as Producto).id)).slice(0, 2)
+          await supabase.from('products').update({ imagenes: imgs }).eq('id', (data as Producto).id)
         }
-
-        setProductos((estadoPrevio) => [
-          { ...(datosCreacion as Producto), imagenes: imagenesActualizadas },
-          ...estadoPrevio,
-        ])
+        setProductos((p) => [{ ...(data as Producto), imagenes: imgs }, ...p])
       }
-
-      setModalProductoAbierto(false)
-      setFormulario({ ...formularioInicial })
-      setArchivosSeleccionados([])
-    } catch (errorGuardado) {
+      setModalProducto(false); setFormulario({ ...formularioInicial }); setArchivosSeleccionados([])
+      toast.success(formulario.id ? 'Producto actualizado' : 'Producto creado')
+    } catch {
       setErrorFormulario('No se pudo guardar el producto. Intenta nuevamente.')
     } finally {
       setCargando(false)
     }
   }
 
-  const eliminarProducto = async (productoId: string) => {
+  const eliminarProducto = async (id: string) => {
     setCargando(true)
-    const { error } = await supabase.from('products').delete().eq('id', productoId)
-    if (!error) {
-      setProductos((estadoPrevio) =>
-        estadoPrevio.filter((producto) => producto.id !== productoId)
-      )
-    }
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (!error) setProductos((p) => p.filter((prod) => prod.id !== id))
     setCargando(false)
   }
 
-  const obtenerColorTipo = (tipo: TipoProducto) => {
-    switch (tipo) {
-      case 'producto':
-        return 'bg-emerald-100 text-emerald-700'
-      case 'servicio':
-        return 'bg-blue-100 text-blue-700'
-      case 'reserva':
-        return 'bg-orange-100 text-orange-700'
-      default:
-        return 'bg-slate-100 text-slate-700'
-    }
-  }
-
-  const obtenerTextoTipo = (tipo: TipoProducto) => {
-    if (tipo === 'producto') {
-      return 'Producto'
-    }
-    if (tipo === 'servicio') {
-      return 'Servicio'
-    }
-    return 'Reserva'
-  }
-
-  const obtenerIconoTipo = (tipo: TipoProducto) => {
-    if (tipo === 'servicio') {
-      return <Briefcase className="h-4 w-4" />
-    }
-    if (tipo === 'reserva') {
-      return <Calendar className="h-4 w-4" />
-    }
-    return <Package className="h-4 w-4" />
-  }
-
   return (
-    <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900">Productos, servicios y reservas</h1>
-        <p className="text-sm text-slate-600">
-          Administra tu catálogo y mantén el stock bajo control
-        </p>
-      </header>
+    <div className="p-6 lg:p-8 space-y-6">
+      <div>
+        <h1 className="font-display font-bold text-2xl tracking-[-0.03em]" style={{ color: 'var(--text-primary)' }}>Productos</h1>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>Administra tu catálogo y mantén el stock bajo control</p>
+      </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-white to-emerald-50 border border-emerald-100 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-          <p className="text-xs text-slate-500">Productos activos</p>
-          <p className="text-2xl font-bold text-slate-900">{totalActivos}</p>
-        </div>
-        <div className="bg-gradient-to-br from-white to-amber-50 border border-amber-100 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-          <p className="text-xs text-slate-500">Stock bajo</p>
-          <p className="text-2xl font-bold text-amber-600">{productosStockBajo}</p>
-        </div>
-        <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-          <p className="text-xs text-slate-500">Sin foto</p>
-          <p className="text-2xl font-bold text-slate-900">{productosSinFoto}</p>
-        </div>
-      </section>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Activos',   value: totalActivos,       color: 'var(--accent)', bg: 'var(--accent-dim)'          },
+          { label: 'Stock bajo',value: productosStockBajo,  color: '#F59E0B',       bg: 'rgba(245,158,11,0.1)'       },
+          { label: 'Sin foto',  value: productosSinFoto,    color: 'var(--text-secondary)', bg: 'var(--bg-surface)'  },
+        ].map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06 }}
+            className="rounded-2xl p-5 text-center" style={cardStyle}>
+            <p className="font-display font-extrabold text-2xl tracking-[-0.03em]" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{s.label}</p>
+          </motion.div>
+        ))}
+      </div>
 
-      <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Filtros + acción */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-3">
-          <select
-            value={filtroTipo}
-            onChange={(event) => setFiltroTipo(event.target.value as FiltroTipo)}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
-          >
+          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
+            className="input-glass cursor-pointer">
             <option value="todos">Todos los tipos</option>
             <option value="producto">Productos</option>
             <option value="servicio">Servicios</option>
             <option value="reserva">Reservas</option>
           </select>
-          <select
-            value={filtroCategoria}
-            onChange={(event) => setFiltroCategoria(event.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
-          >
+          <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
+            className="input-glass cursor-pointer">
             <option value="todas">Todas las categorías</option>
-            {categorias.map((categoria) => (
-              <option key={categoria.id} value={categoria.id}>
-                {categoria.nombre}
-              </option>
-            ))}
+            {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
         </div>
-        <button
-          onClick={abrirModalNuevoProducto}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e] hover:shadow-md"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo producto
+        <button onClick={abrirModalNuevo}
+          className="btn-accent px-4 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-2">
+          <Plus className="w-4 h-4" strokeWidth={2} /> Nuevo producto
         </button>
-      </section>
+      </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">Categorías activas</h3>
-          <span className="text-xs text-slate-500">{categorias.length} registradas</span>
+      {/* Categorías */}
+      <div className="p-4 rounded-2xl" style={cardStyle}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Categorías</p>
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{categorias.length} registradas</span>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {categorias.length === 0 ? (
-            <span className="text-xs text-slate-400">Aún no hay categorías.</span>
-          ) : (
-            categorias.map((categoria) => (
-              <span
-                key={categoria.id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
-              >
-                {categoria.nombre}
-                <button
-                  type="button"
-                  onClick={() => eliminarCategoria(categoria.id)}
-                  className="rounded-full p-0.5 text-red-500 hover:bg-red-50"
-                  aria-label={`Eliminar categoría ${categoria.nombre}`}
-                >
-                  <X className="h-3 w-3" />
+        <div className="flex flex-wrap gap-2">
+          {categorias.length === 0
+            ? <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Aún no hay categorías.</span>
+            : categorias.map((c) => (
+              <span key={c.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
+                {c.nombre}
+                <button type="button" onClick={() => eliminarCategoria(c.id)}
+                  className="w-3.5 h-3.5 rounded-full transition-opacity hover:opacity-70">
+                  <X className="w-3 h-3" strokeWidth={2.5} />
                 </button>
               </span>
-            ))
-          )}
+            ))}
         </div>
-      </section>
+      </div>
 
-      <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      {/* Tabla */}
+      <div className="rounded-2xl overflow-hidden" style={cardStyle}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-6 py-4 text-left">Foto</th>
-                <th className="px-6 py-4 text-left">Nombre</th>
-                <th className="px-6 py-4 text-left">Tipo</th>
-                <th className="px-6 py-4 text-left">Precio</th>
-                <th className="px-6 py-4 text-left">Stock</th>
-                <th className="px-6 py-4 text-left">Categoría</th>
-                <th className="px-6 py-4 text-left">Acciones</th>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' }}>
+                {['Foto', 'Nombre', 'Tipo', 'Precio', 'Stock', 'Categoría', 'Acciones'].map((h) => (
+                  <th key={h} className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: 'var(--text-tertiary)' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {productosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
                     No hay productos para los filtros seleccionados.
                   </td>
                 </tr>
-              ) : (
-                productosFiltrados.map((producto) => {
-                  const stockBajo =
-                    producto.tipo === 'producto' &&
-                    typeof producto.stock === 'number' &&
-                    typeof producto.stock_alert_threshold === 'number' &&
-                    producto.stock <= producto.stock_alert_threshold
-
-                  return (
-                    <tr
-                      key={producto.id}
-                      className={
-                        stockBajo
-                          ? 'bg-amber-50/60 border-b border-amber-100'
-                          : 'border-b border-slate-100'
-                      }
-                    >
-                      <td className="px-6 py-4">
-                        {producto.imagenes?.[0] ? (
-                          <img
-                            src={producto.imagenes[0]}
-                            alt={producto.nombre}
-                            className="h-10 w-10 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                            <ImagePlus className="h-4 w-4" />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-900">{producto.nombre}</p>
-                        <p className="text-xs text-slate-500">
-                          {producto.descripcion || 'Sin descripción'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${obtenerColorTipo(
-                            producto.tipo
-                          )}`}
-                        >
-                          {obtenerIconoTipo(producto.tipo)}
-                          {obtenerTextoTipo(producto.tipo)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-slate-900">
-                        ${producto.precio.toLocaleString()} {producto.moneda}
-                      </td>
-                      <td className="px-6 py-4">
-                        {producto.tipo === 'producto' ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-700">
-                              {producto.stock ?? 0}
-                            </span>
-                            {stockBajo && (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                                Stock bajo
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">No aplica</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {producto.categoria_id && categoriasPorId[producto.categoria_id]
-                          ? categoriasPorId[producto.categoria_id].nombre
-                          : 'Sin categoría'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => abrirModalEditar(producto)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => eliminarProducto(producto.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 transition-all duration-300 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Eliminar
-                          </button>
+              ) : productosFiltrados.map((producto) => {
+                const stockBajo = producto.tipo === 'producto' &&
+                  typeof producto.stock === 'number' && typeof producto.stock_alert_threshold === 'number' &&
+                  producto.stock <= producto.stock_alert_threshold
+                const tipoCfg = TIPO_CFG[producto.tipo]
+                const TipoIcon = tipoCfg.icon
+                return (
+                  <tr key={producto.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-glass)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    <td className="px-5 py-3.5">
+                      {producto.imagenes?.[0] ? (
+                        <img src={producto.imagenes[0]} alt={producto.nombre} className="h-10 w-10 rounded-xl object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-xl flex items-center justify-center"
+                          style={{ background: 'var(--bg-surface)' }}>
+                          <ImagePlus className="h-4 w-4 opacity-30" style={{ color: 'var(--text-secondary)' }} strokeWidth={1.5} />
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{producto.nombre}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{producto.descripcion || 'Sin descripción'}</p>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                        style={{ background: tipoCfg.bg, color: tipoCfg.color, border: `1px solid ${tipoCfg.border}` }}>
+                        <TipoIcon className="w-3 h-3" strokeWidth={2} />
+                        {tipoCfg.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 font-semibold" style={{ color: 'var(--accent)' }}>
+                      ${producto.precio.toLocaleString()} {producto.moneda}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {producto.tipo === 'producto' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold" style={{ color: stockBajo ? '#F59E0B' : 'var(--text-primary)' }}>
+                            {producto.stock ?? 0}
+                          </span>
+                          {stockBajo && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>
+                              <AlertTriangle className="w-3 h-3" /> Bajo
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>N/A</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {producto.categoria_id && categoriasPorId[producto.categoria_id]
+                        ? categoriasPorId[producto.categoria_id].nombre
+                        : 'Sin categoría'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => abrirModalEditar(producto)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                          style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                          <Pencil className="h-3 w-3" strokeWidth={1.75} /> Editar
+                        </button>
+                        <button onClick={() => eliminarProducto(producto.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                          style={{ border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                          <Trash2 className="h-3 w-3" strokeWidth={1.75} /> Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
 
-      {modalProductoAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-3xl rounded-xl bg-white p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
-              {formulario.id ? 'Editar producto' : 'Nuevo producto'}
-            </h2>
+      {/* Modal producto */}
+      <AnimatePresence>
+        {modalProducto && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={modalOverlay}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl my-auto p-6"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '20px' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                  {formulario.id ? 'Editar producto' : 'Nuevo producto'}
+                </h2>
+                <button onClick={() => setModalProducto(false)} className="p-2 rounded-xl"
+                  style={{ color: 'var(--text-tertiary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                  <X className="w-5 h-5" strokeWidth={1.75} />
+                </button>
+              </div>
 
-            {errorFormulario && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-                {errorFormulario}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <input
-                    id="nombre-producto"
-                    value={formulario.nombre}
-                    onChange={(event) =>
-                      setFormulario((estado) => ({ ...estado, nombre: event.target.value }))
-                    }
-                    placeholder=" "
-                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                  />
-                  <label
-                    htmlFor="nombre-producto"
-                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                  >
-                    Nombre
-                  </label>
+              {errorFormulario && (
+                <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#EF4444' }} />
+                  <p className="text-sm" style={{ color: '#EF4444' }}>{errorFormulario}</p>
                 </div>
-              </div>
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <textarea
-                    id="descripcion-producto"
-                    value={formulario.descripcion}
-                    onChange={(event) =>
-                      setFormulario((estado) => ({ ...estado, descripcion: event.target.value }))
-                    }
-                    placeholder=" "
-                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                    rows={3}
-                  />
-                  <label
-                    htmlFor="descripcion-producto"
-                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                  >
-                    Descripción
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700">Tipo de ítem</label>
-                <select
-                  value={formulario.tipo}
-                  onChange={(event) =>
-                    setFormulario((estado) => {
-                      const tipoSeleccionado = event.target.value as TipoProducto
-                      return {
-                        ...estado,
-                        tipo: tipoSeleccionado,
-                        stock: tipoSeleccionado === 'producto' ? estado.stock ?? 0 : null,
-                        stock_alert_threshold:
-                          tipoSeleccionado === 'producto' ? estado.stock_alert_threshold ?? 0 : null,
-                        duracion_minutos:
-                          tipoSeleccionado === 'producto' ? null : estado.duracion_minutos ?? 30,
-                        capacidad: tipoSeleccionado === 'reserva' ? estado.capacidad ?? 1 : null,
-                      }
-                    })
-                  }
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="producto">Producto</option>
-                  <option value="servicio">Servicio</option>
-                  <option value="reserva">Reserva</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700">Categoría</label>
-                <select
-                  value={formulario.categoria_id ?? ''}
-                  onChange={(event) => manejarSeleccionCategoria(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Sin categoría</option>
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nombre}
-                    </option>
-                  ))}
-                  <option value="nueva">+ Agregar nueva categoría</option>
-                </select>
-              </div>
-              <div>
-                <div className="relative">
-                  <input
-                    id="precio-producto"
-                    type="number"
-                    value={formulario.precio}
-                    onChange={(event) =>
-                      setFormulario((estado) => ({
-                        ...estado,
-                        precio: Number(event.target.value),
-                      }))
-                    }
-                    placeholder=" "
-                    className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                  />
-                  <label
-                    htmlFor="precio-producto"
-                    className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                  >
-                    Precio
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700">Moneda</label>
-                <select
-                  value={formulario.moneda}
-                  onChange={(event) =>
-                    setFormulario((estado) => ({
-                      ...estado,
-                      moneda: event.target.value,
-                    }))
-                  }
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  {MONEDAS.map((moneda) => (
-                    <option key={moneda} value={moneda}>
-                      {moneda}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {formulario.tipo === 'producto' ? (
-                <>
-                  <div>
-                    <div className="relative">
-                      <input
-                        id="stock-producto"
-                        type="number"
-                        value={formulario.stock ?? 0}
-                        onChange={(event) =>
-                          setFormulario((estado) => ({
-                            ...estado,
-                            stock: Number(event.target.value),
-                          }))
-                        }
-                        placeholder=" "
-                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                      />
-                      <label
-                        htmlFor="stock-producto"
-                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                      >
-                        Stock
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <input
-                        id="alerta-stock-producto"
-                        type="number"
-                        value={formulario.stock_alert_threshold ?? 0}
-                        onChange={(event) =>
-                          setFormulario((estado) => ({
-                            ...estado,
-                            stock_alert_threshold: Number(event.target.value),
-                          }))
-                        }
-                        placeholder=" "
-                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                      />
-                      <label
-                        htmlFor="alerta-stock-producto"
-                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                      >
-                        Alerta de stock bajo
-                      </label>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <div className="relative">
-                      <input
-                        id="duracion-servicio"
-                        type="number"
-                        value={formulario.duracion_minutos ?? 0}
-                        onChange={(event) =>
-                          setFormulario((estado) => ({
-                            ...estado,
-                            duracion_minutos: Number(event.target.value),
-                          }))
-                        }
-                        placeholder=" "
-                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                      />
-                      <label
-                        htmlFor="duracion-servicio"
-                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                      >
-                        Duración (min)
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <input
-                        id="capacidad-servicio"
-                        type="number"
-                        value={formulario.capacidad ?? 0}
-                        onChange={(event) =>
-                          setFormulario((estado) => ({
-                            ...estado,
-                            capacidad: Number(event.target.value),
-                          }))
-                        }
-                        placeholder=" "
-                        className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-                      />
-                      <label
-                        htmlFor="capacidad-servicio"
-                        className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-                      >
-                        Capacidad
-                      </label>
-                    </div>
-                  </div>
-                </>
               )}
-              <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-700">Imágenes</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(event) => {
-                    const archivos = Array.from(event.target.files ?? []).slice(0, 2)
-                    setArchivosSeleccionados(archivos)
-                  }}
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
-                <p className="mt-1 text-xs text-slate-500">Máximo 2 imágenes.</p>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Nombre</label>
+                  <input value={formulario.nombre} onChange={(e) => setFormulario((f) => ({ ...f, nombre: e.target.value }))}
+                    placeholder="Polera básica algodón" className="input-glass" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Descripción</label>
+                  <textarea value={formulario.descripcion} onChange={(e) => setFormulario((f) => ({ ...f, descripcion: e.target.value }))}
+                    rows={3} placeholder="Descripción del producto..." className="input-glass resize-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tipo de ítem</label>
+                  <select value={formulario.tipo} className="input-glass cursor-pointer"
+                    onChange={(e) => setFormulario((f) => {
+                      const tipo = e.target.value as TipoProducto
+                      return { ...f, tipo, stock: tipo === 'producto' ? f.stock ?? 0 : null, stock_alert_threshold: tipo === 'producto' ? f.stock_alert_threshold ?? 0 : null, duracion_minutos: tipo === 'producto' ? null : f.duracion_minutos ?? 30, capacidad: tipo === 'reserva' ? f.capacidad ?? 1 : null }
+                    })}>
+                    <option value="producto">Producto</option>
+                    <option value="servicio">Servicio</option>
+                    <option value="reserva">Reserva</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Categoría</label>
+                  <select value={formulario.categoria_id ?? ''} onChange={(e) => manejarCategoria(e.target.value)} className="input-glass cursor-pointer">
+                    <option value="">Sin categoría</option>
+                    {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    <option value="nueva">+ Agregar nueva categoría</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Precio</label>
+                  <input type="number" value={formulario.precio} onChange={(e) => setFormulario((f) => ({ ...f, precio: Number(e.target.value) }))}
+                    className="input-glass" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Moneda</label>
+                  <select value={formulario.moneda} onChange={(e) => setFormulario((f) => ({ ...f, moneda: e.target.value }))} className="input-glass cursor-pointer">
+                    {MONEDAS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                {formulario.tipo === 'producto' ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Stock</label>
+                      <input type="number" value={formulario.stock ?? 0} onChange={(e) => setFormulario((f) => ({ ...f, stock: Number(e.target.value) }))} className="input-glass" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Alerta de stock bajo</label>
+                      <input type="number" value={formulario.stock_alert_threshold ?? 0} onChange={(e) => setFormulario((f) => ({ ...f, stock_alert_threshold: Number(e.target.value) }))} className="input-glass" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Duración (min)</label>
+                      <input type="number" value={formulario.duracion_minutos ?? 0} onChange={(e) => setFormulario((f) => ({ ...f, duracion_minutos: Number(e.target.value) }))} className="input-glass" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Capacidad</label>
+                      <input type="number" value={formulario.capacidad ?? 0} onChange={(e) => setFormulario((f) => ({ ...f, capacidad: Number(e.target.value) }))} className="input-glass" />
+                    </div>
+                  </>
+                )}
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Imágenes (máx. 2)</label>
+                  <input type="file" multiple accept="image/*" className="input-glass"
+                    onChange={(e) => setArchivosSeleccionados(Array.from(e.target.files ?? []).slice(0, 2))} />
+                </div>
               </div>
-            </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                onClick={cerrarModalProducto}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={guardarProducto}
-                disabled={cargando}
-                className="rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e] disabled:opacity-50"
-              >
-                {cargando ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="mt-6 flex justify-end gap-2">
+                <button onClick={() => setModalProducto(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                  style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                  Cancelar
+                </button>
+                <button onClick={guardarProducto} disabled={cargando}
+                  className="btn-accent px-5 py-2.5 text-sm font-semibold rounded-xl disabled:opacity-50">
+                  {cargando ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {modalCategoriaAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-3">
-              Nueva categoría
-            </h3>
-            <div className="relative">
-              <input
-                id="categoria-nueva"
-                value={nombreCategoriaNueva}
-                onChange={(event) => setNombreCategoriaNueva(event.target.value)}
-                placeholder=" "
-                className="peer w-full rounded-lg border border-slate-200 px-3 pb-2 pt-5 text-sm focus:border-emerald-400 focus:outline-none"
-              />
-              <label
-                htmlFor="categoria-nueva"
-                className="pointer-events-none absolute left-3 top-2 text-xs font-semibold text-slate-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400"
-              >
-                Nombre de categoría
-              </label>
-            </div>
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setModalCategoriaAbierto(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={crearCategoria}
-                className="rounded-lg bg-[#0f9d58] px-4 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#0b8b4e]"
-              >
-                Crear
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal categoría */}
+      <AnimatePresence>
+        {modalCategoria && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={modalOverlay}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-md p-6 space-y-4"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '20px' }}>
+              <h3 className="font-display font-bold text-base" style={{ color: 'var(--text-primary)' }}>Nueva categoría</h3>
+              <input value={nombreCategoriaNueva} onChange={(e) => setNombreCategoriaNueva(e.target.value)}
+                placeholder="Nombre de categoría" className="input-glass" />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setModalCategoria(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                  style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                  Cancelar
+                </button>
+                <button onClick={crearCategoria} disabled={cargando}
+                  className="btn-accent px-5 py-2.5 text-sm font-semibold rounded-xl disabled:opacity-50">
+                  Crear
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

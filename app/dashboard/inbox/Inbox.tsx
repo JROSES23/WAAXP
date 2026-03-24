@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { Conversacion, Mensaje, Negocio, Producto, Staff } from '@/app/dashboard/types'
-import { Badge } from '@/components/ui/Badge'
+import { Badge } from '@/components/ui/badge'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Calendar,
@@ -23,6 +23,8 @@ interface InboxProps {
   conversaciones: Conversacion[]
   productos: Producto[]
   equipo: Staff[]
+  realtimeMessages?: Mensaje[]
+  onConsumeMessages?: (conversationId: string) => Mensaje[]
 }
 
 interface ItemPedidoTemporal {
@@ -32,12 +34,13 @@ interface ItemPedidoTemporal {
   precioUnitario: number
 }
 
-export default function Inbox({ negocio, conversaciones, productos, equipo }: InboxProps) {
+export default function Inbox({ negocio, conversaciones, productos, equipo, realtimeMessages, onConsumeMessages }: InboxProps) {
   const [conversacionSeleccionadaId, setConversacionSeleccionadaId] = useState<string | null>(
     conversaciones[0]?.id ?? null
   )
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [cargandoMensajes, setCargandoMensajes] = useState(false)
+  const [controlHumano, setControlHumano] = useState(false)
   const [mensajeManual, setMensajeManual] = useState('')
   const [sugerencia, setSugerencia] = useState<string | null>(null)
   const [cargandoSugerencia, setCargandoSugerencia] = useState(false)
@@ -114,8 +117,24 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
     if (conversacionSeleccionadaId) {
       cargarMensajes(conversacionSeleccionadaId)
       cargarSugerencia(conversacionSeleccionadaId)
+      setControlHumano(false)
     }
   }, [conversacionSeleccionadaId])
+
+  // Inject realtime messages
+  useEffect(() => {
+    if (!realtimeMessages?.length || !conversacionSeleccionadaId) return
+    const nuevos = realtimeMessages.filter(
+      (m) => m.conversation_id === conversacionSeleccionadaId
+    )
+    if (nuevos.length > 0) {
+      setMensajes((prev) => {
+        const ids = new Set(prev.map((m) => m.id))
+        return [...prev, ...nuevos.filter((m) => !ids.has(m.id))]
+      })
+      onConsumeMessages?.(conversacionSeleccionadaId)
+    }
+  }, [realtimeMessages, conversacionSeleccionadaId, onConsumeMessages])
 
   const enviarMensaje = async (contenido: string) => {
     if (!conversacionSeleccionadaId || !contenido.trim()) {
@@ -234,23 +253,37 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
               <button
                 key={conversacion.id}
                 onClick={() => setConversacionSeleccionadaId(conversacion.id)}
-                className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${
-                  conversacionSeleccionadaId === conversacion.id ? 'bg-slate-50' : ''
+                className={`w-full text-left px-4 py-3 border-b border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-colors ${
+                  conversacionSeleccionadaId === conversacion.id ? 'bg-[rgb(var(--muted))]' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {conversacion.client_name || conversacion.phone_number}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        conversacion.status === 'active'
+                          ? 'bg-emerald-500'
+                          : conversacion.status === 'pending_approval'
+                            ? 'bg-amber-500'
+                            : 'bg-gray-400'
+                      }`}
+                    />
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                      {conversacion.client_name || conversacion.phone_number}
+                    </p>
+                  </div>
                   {estadoBadge(conversacion.status)}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Última actividad: {conversacion.last_message_at || 'Sin mensajes'}
+                <p className="text-xs text-[rgb(var(--muted-fg))] mt-1 ml-4">
+                  {conversacion.last_message_at
+                    ? new Date(conversacion.last_message_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Sin mensajes'}
                 </p>
               </button>
-            </div>
-          </div>
-        </aside>
+          ))}
+        </div>
+      </aside>
+
 
         <section className="flex-1 flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -262,9 +295,28 @@ export default function Inbox({ negocio, conversaciones, productos, equipo }: In
                 {conversacionSeleccionada?.phone_number || ''}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <MessageSquare className="w-4 h-4" />
-              {mensajes.length} mensajes
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setControlHumano(!controlHumano)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  controlHumano
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                }`}
+              >
+                {controlHumano ? '🙋 Control Humano' : '🤖 IA Activa'}
+              </button>
+              {!controlHumano && (
+                <button
+                  onClick={() => setControlHumano(true)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[rgb(var(--border))] text-[rgb(var(--fg))] hover:bg-[rgb(var(--muted))] transition-colors"
+                >
+                  Tomar control
+                </button>
+              )}
+              <span className="text-xs text-[rgb(var(--muted-fg))]">
+                {mensajes.length} mensajes
+              </span>
             </div>
           </div>
 

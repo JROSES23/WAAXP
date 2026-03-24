@@ -9,12 +9,12 @@ export async function generateMetadata({
   
   const meta: Record<string, { title: string; description: string }> = {
     "automatizar-ventas-whatsapp-chile": {
-      title: "Cómo automatizar ventas en WhatsApp en Chile | Operly",
+      title: "Cómo automatizar ventas en WhatsApp en Chile | WAAXP",
       description:
         "Guía práctica para PYMEs chilenas que quieren vender más automatizando WhatsApp Business con IA.",
     },
     "errores-whatsapp-business": {
-      title: "5 errores en Whatsapp Business que te cuestan ventas | Operly",
+      title: "5 errores en Whatsapp Business que te cuestan ventas | WAAXP",
       description:
         "Errores comunes que hacen perder clientes y cómo evitarlos usando automatización.",
     },
@@ -26,7 +26,7 @@ export async function generateMetadata({
   }
 
   return meta[slug] ?? {
-    title: "Blog | Operly",
+    title: "Blog | WAAXP",
     description:
       "Guías y estrategias para vender más con WhatsApp Business e IA.",
   }

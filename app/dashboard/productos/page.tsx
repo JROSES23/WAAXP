@@ -1,33 +1,33 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthContext } from '@/lib/auth'
 import ProductosClient from './ProductosClient'
-import {
-  obtenerCategoriasPorNegocio,
-  obtenerNegocioActual,
-  obtenerProductosPorNegocio,
-} from '@/app/dashboard/lib/data'
+import { obtenerCategoriasPorNegocio, obtenerProductosPorNegocio } from '@/app/dashboard/lib/data'
+import { DEMO_CATEGORIAS, DEMO_NEGOCIO, DEMO_PRODUCTOS } from '@/app/dashboard/lib/demo-data'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ProductosPage() {
-  const supabase = await createClient()
-  const {
-    data: { user: usuario },
-  } = await supabase.auth.getUser()
+  const auth = await getAuthContext()
+  if (!auth) redirect('/login')
 
-  if (!usuario) {
-    redirect('/login')
+  if (!auth.businessId) {
+    return (
+      <ProductosClient
+        negocio={DEMO_NEGOCIO}
+        productosIniciales={DEMO_PRODUCTOS}
+        categoriasIniciales={DEMO_CATEGORIAS}
+      />
+    )
   }
 
-  const negocio = await obtenerNegocioActual(usuario.id)
   const [productosIniciales, categoriasIniciales] = await Promise.all([
-    obtenerProductosPorNegocio(negocio.id),
-    obtenerCategoriasPorNegocio(negocio.id),
+    obtenerProductosPorNegocio(auth.businessId),
+    obtenerCategoriasPorNegocio(auth.businessId),
   ])
 
   return (
     <ProductosClient
-      negocio={negocio}
+      negocio={auth.business!}
       productosIniciales={productosIniciales}
       categoriasIniciales={categoriasIniciales}
     />

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Operly - Automatización WhatsApp IA",
+  title: "WAAXP — Agente IA para WhatsApp",
   description: "Plataforma de ventas automáticas para PYMES con IA",
 };
 

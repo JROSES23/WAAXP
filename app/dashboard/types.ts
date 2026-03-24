@@ -22,6 +22,14 @@ export interface Negocio {
   plan: string
   usage_limit: number
   current_usage: number
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+  plan_expires_at?: string
+  ai_prompt?: string
+  ai_tone?: string
+  ai_followup_days?: number
+  ai_discount_pct?: number
+  whatsapp_status?: string
   created_at: string
 }
 
@@ -130,4 +138,116 @@ export interface ItemPedido {
   cantidad: number
   precio_unitario: number
   subtotal: number
+}
+
+// ============================================================
+// RBAC Types
+// ============================================================
+
+export type UserRole = 'owner' | 'agent'
+
+export type SectionPermission =
+  | 'dashboard'
+  | 'inbox'
+  | 'clientes'
+  | 'productos'
+  | 'reportes'
+  | 'equipo'
+  | 'configuracion_ia'
+  | 'whatsapp_qr'
+  | 'billing'
+
+export interface UserRoleRecord {
+  id: string
+  user_id: string
+  business_id: string
+  role: UserRole
+  created_at: string
+  updated_at: string
+}
+
+export interface UserPermission {
+  id: string
+  user_role_id: string
+  section: SectionPermission
+  can_view: boolean
+  can_edit: boolean
+  created_at: string
+}
+
+export interface TeamInvitation {
+  id: string
+  business_id: string
+  email: string
+  role: UserRole
+  invited_by: string
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled'
+  token: string
+  expires_at: string
+  created_at: string
+}
+
+export interface UserProfile {
+  id: string
+  user_id: string
+  display_name: string | null
+  avatar_url: string | null
+  theme_mode: 'light' | 'dark'
+  theme_color: string
+  locale: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Sale {
+  id: string
+  business_id: string
+  conversation_id: string | null
+  client_phone: string | null
+  client_name: string | null
+  amount: number
+  currency: string
+  source: 'manual' | 'ai' | 'human'
+  status: 'pending' | 'completed' | 'cancelled' | 'refunded'
+  created_at: string
+}
+
+export interface SupportTicket {
+  id: string
+  business_id: string | null
+  user_id: string | null
+  subject: string
+  message: string
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  ai_suggested_response: string | null
+  admin_response: string | null
+  resolved_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PlanConfig {
+  id: string
+  plan_name: string
+  display_name: string
+  price_clp: number
+  conversation_limit: number
+  pdf_reports_limit: number
+  features: string[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Computed auth context passed through the app
+export interface AuthContext {
+  userId: string
+  email: string
+  isSuperAdmin: boolean
+  businessId: string | null
+  role: UserRole | null
+  permissions: SectionPermission[]
+  profile: UserProfile | null
+  business: Negocio | null
 }

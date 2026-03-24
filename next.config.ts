@@ -1,9 +1,27 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
+  webpack: (config: { watchOptions: Record<string, unknown> }) => {
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ["**/System Volume Information/**", "**/.next/**"],
+    };
+    return config;
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

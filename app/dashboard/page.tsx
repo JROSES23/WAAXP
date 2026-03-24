@@ -1,38 +1,40 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import DashboardClient from './components/DashboardClient'
-import { obtenerConversacionesPorNegocio, obtenerNegocioActual } from '@/app/dashboard/lib/data'
+import { getAuthContext } from '@/lib/auth'
+import { obtenerKPIs } from '@/app/dashboard/lib/data'
+import { DEMO_KPIS, DEMO_NEGOCIO } from '@/app/dashboard/lib/demo-data'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const {
-    data: { user: usuario },
-  } = await supabase.auth.getUser()
+  const auth = await getAuthContext()
 
-  if (!usuario) {
+  if (!auth) {
     redirect('/login')
   }
 
-  const negocio = await obtenerNegocioActual(usuario.id)
-  const conversaciones = await obtenerConversacionesPorNegocio(negocio.id)
-  const conversacionesPendientes = conversaciones.filter(
-    (conv) => conv.status === 'pending_approval'
-  )
-  const usoPorcentaje = negocio.usage_limit
-    ? Math.round((negocio.current_usage / negocio.usage_limit) * 100)
-    : 0
+  if (!auth.businessId || !auth.business) {
+    return (
+      <DashboardClient
+        kpis={DEMO_KPIS}
+        plan={DEMO_NEGOCIO.plan}
+        usoPorcentaje={Math.round((DEMO_NEGOCIO.current_usage / DEMO_NEGOCIO.usage_limit) * 100)}
+        isDemo
+      />
+    )
+  }
+
+  const kpis = await obtenerKPIs(auth.businessId)
 
   return (
     <DashboardClient
-      usuario={usuario}
-      resumen={{
-        totalConversaciones: conversaciones.length,
-        conversacionesPendientes: conversacionesPendientes.length,
-        usoPorcentaje,
-      }}
-      pendientes={conversacionesPendientes}
+      kpis={kpis}
+      plan={auth.business.plan}
+      usoPorcentaje={
+        auth.business.usage_limit
+          ? Math.round((auth.business.current_usage / auth.business.usage_limit) * 100)
+          : 0
+      }
     />
   )
 }

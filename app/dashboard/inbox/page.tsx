@@ -1,35 +1,35 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthContext } from '@/lib/auth'
 import InboxClient from './InboxClient'
-import {
-  obtenerConversacionesPorNegocio,
-  obtenerNegocioActual,
-  obtenerProductosPorNegocio,
-  obtenerStaffPorNegocio,
-} from '@/app/dashboard/lib/data'
+import { obtenerConversacionesPorNegocio, obtenerProductosPorNegocio, obtenerStaffPorNegocio } from '@/app/dashboard/lib/data'
+import { DEMO_CONVERSACIONES, DEMO_PRODUCTOS, DEMO_STAFF, DEMO_NEGOCIO } from '@/app/dashboard/lib/demo-data'
 
 export const dynamic = 'force-dynamic'
 
 export default async function InboxPage() {
-  const supabase = await createClient()
-  const {
-    data: { user: usuario },
-  } = await supabase.auth.getUser()
+  const auth = await getAuthContext()
+  if (!auth) redirect('/login')
 
-  if (!usuario) {
-    redirect('/login')
+  if (!auth.businessId) {
+    return (
+      <InboxClient
+        negocio={DEMO_NEGOCIO}
+        conversaciones={DEMO_CONVERSACIONES}
+        productos={DEMO_PRODUCTOS}
+        equipo={DEMO_STAFF}
+      />
+    )
   }
 
-  const negocio = await obtenerNegocioActual(usuario.id)
   const [conversaciones, productos, equipo] = await Promise.all([
-    obtenerConversacionesPorNegocio(negocio.id),
-    obtenerProductosPorNegocio(negocio.id),
-    obtenerStaffPorNegocio(negocio.id),
+    obtenerConversacionesPorNegocio(auth.businessId),
+    obtenerProductosPorNegocio(auth.businessId),
+    obtenerStaffPorNegocio(auth.businessId),
   ])
 
   return (
     <InboxClient
-      negocio={negocio}
+      negocio={auth.business!}
       conversaciones={conversaciones}
       productos={productos}
       equipo={equipo}

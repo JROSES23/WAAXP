@@ -1,33 +1,33 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthContext } from '@/lib/auth'
 import ConfiguracionClient from './ConfiguracionClient'
-import {
-  obtenerNegocioActual,
-  obtenerPlantillasRespuesta,
-  obtenerStaffPorNegocio,
-} from '@/app/dashboard/lib/data'
+import { obtenerPlantillasRespuesta, obtenerStaffPorNegocio } from '@/app/dashboard/lib/data'
+import { DEMO_NEGOCIO, DEMO_PLANTILLAS, DEMO_STAFF } from '@/app/dashboard/lib/demo-data'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ConfiguracionPage() {
-  const supabase = await createClient()
-  const {
-    data: { user: usuario },
-  } = await supabase.auth.getUser()
+  const auth = await getAuthContext()
+  if (!auth) redirect('/login')
 
-  if (!usuario) {
-    redirect('/login')
+  if (!auth.businessId) {
+    return (
+      <ConfiguracionClient
+        negocio={DEMO_NEGOCIO}
+        equipoInicial={DEMO_STAFF}
+        plantillasIniciales={DEMO_PLANTILLAS}
+      />
+    )
   }
 
-  const negocio = await obtenerNegocioActual(usuario.id)
   const [equipo, plantillas] = await Promise.all([
-    obtenerStaffPorNegocio(negocio.id),
-    obtenerPlantillasRespuesta(negocio.id),
+    obtenerStaffPorNegocio(auth.businessId),
+    obtenerPlantillasRespuesta(auth.businessId),
   ])
 
   return (
     <ConfiguracionClient
-      negocio={negocio}
+      negocio={auth.business!}
       equipoInicial={equipo}
       plantillasIniciales={plantillas}
     />

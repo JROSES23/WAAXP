@@ -88,7 +88,7 @@ export default function BlogPage() {
 
       {/* HERO */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-slate-50 to-white text-center">
-        <h1 className="text-5xl font-bold text-slate-900 mb-4">Blog de Operly</h1>
+        <h1 className="text-5xl font-bold text-slate-900 mb-4">Blog de WAAXP</h1>
         <p className="text-xl text-slate-600">
           Estrategias reales para vender más con WhatsApp e IA
         </p>

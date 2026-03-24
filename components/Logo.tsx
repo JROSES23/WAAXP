@@ -11,7 +11,7 @@ export default function Logo({
           <span className="text-white font-semibold text-lg tracking-wide">O</span>
           <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-[#1d4ed8]" />
         </div>
-        {showText && <span className="text-2xl font-bold text-slate-900">Operly</span>}
+        {showText && <span className="text-2xl font-bold text-slate-900">WAAXP</span>}
       </div>
     );
   }
