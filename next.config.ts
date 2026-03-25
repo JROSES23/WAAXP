@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -15,13 +16,13 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config: { watchOptions: Record<string, unknown> }) => {
+  webpack: (config) => {
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ["**/System Volume Information/**", "**/.next/**"],
-    };
-    return config;
+      ignored: ['**/System Volume Information/**', '**/.next/**'],
+    }
+    return config
   },
-};
+}
 
-module.exports = nextConfig;
+export default nextConfig
