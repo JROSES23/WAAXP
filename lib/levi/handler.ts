@@ -63,7 +63,7 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     return
   }
 
-  const business = botConfig.businesses as {
+  const business = botConfig.businesses as unknown as {
     id:               string
     name:             string
     ai_prompt?:       string | null
@@ -197,7 +197,7 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     }),
     supabase.rpc('increment_conversation_count', {
       p_customer_id: customerId,
-    }).catch(() => {}),
+    }),
   ])
 
   // 11. Si requiere humano, actualizar la conversación a "pending_approval"

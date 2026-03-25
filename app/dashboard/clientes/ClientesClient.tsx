@@ -18,7 +18,7 @@ interface Cliente {
 }
 
 type FiltroLead = 'todos' | 'frio' | 'tibio' | 'caliente'
-interface ClientesClientProps { clientes: Cliente[]; businessId: string }
+interface ClientesClientProps { clientes: Cliente[]; businessId: string; isDemo?: boolean }
 
 function formatCLP(n: number) {
   return n.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 })

@@ -240,7 +240,6 @@ export default function Sidebar({ auth, pendingCount }: SidebarProps) {
                             className="relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 overflow-hidden"
                             style={{
                               height: '40px',
-                              paddingLeft: expanded ? '12px' : '0px',
                               justifyContent: expanded ? 'flex-start' : 'center',
                               ...(active
                                 ? {

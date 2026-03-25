@@ -11,7 +11,7 @@ import {
   Users,
   Settings,
 } from 'lucide-react'
-import ThemeToggle from '@/components/ThemeToggle'
+import { ThemeToggleButton as ThemeToggle } from '@/components/providers/theme-provider'
 
 const items = [
   { id: 'dashboard', label: 'Panel', icon: LayoutDashboard, href: '/dashboard' },
