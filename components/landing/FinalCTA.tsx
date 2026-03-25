@@ -10,15 +10,23 @@ interface FinalCTAProps {
 
 export default function FinalCTA({ onContact }: FinalCTAProps) {
   return (
-    <section className="py-24 px-5 sm:px-8 bg-[#080C14] relative overflow-hidden">
+    <section className="py-24 px-5 sm:px-8 bg-[#080C14] relative overflow-hidden border-t border-white/[0.04]">
       {/* Background orbs */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 60% 80% at 50% 120%, rgba(10,186,181,0.12) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 40% at 20% 0%, rgba(10,186,181,0.05) 0%, transparent 60%)
+            radial-gradient(ellipse 70% 90% at 50% 130%, rgba(10,186,181,0.15) 0%, transparent 65%),
+            radial-gradient(ellipse 50% 50% at 20% 0%, rgba(10,186,181,0.06) 0%, transparent 55%),
+            radial-gradient(ellipse 30% 30% at 80% 10%, rgba(10,186,181,0.04) 0%, transparent 55%)
           `,
+        }}
+      />
+      {/* Noise texture overlay */}
+      <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundSize: '256px 256px',
         }}
       />
 
@@ -52,7 +60,7 @@ export default function FinalCTA({ onContact }: FinalCTAProps) {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/login"
-              className="group inline-flex items-center gap-2.5 px-8 py-4 bg-[#0ABAB5] text-white font-semibold rounded-xl text-base transition-all duration-200 hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(10,186,181,0.45)] active:scale-[0.98] animate-glow-pulse"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 bg-[#0ABAB5] text-white font-semibold rounded-xl text-base transition-all duration-200 hover:-translate-y-px hover:shadow-[0_16px_40px_rgba(10,186,181,0.45)] active:scale-[0.98] "
             >
               <MessageCircle className="w-4.5 h-4.5" strokeWidth={2} />
               Activar mi asistente gratis

@@ -35,8 +35,16 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section id="faq" className="py-24 px-5 sm:px-8 bg-[#FAFAFA]">
-      <div className="max-w-4xl mx-auto">
+    <section id="faq" className="py-24 px-5 sm:px-8 bg-[#080C14] relative overflow-hidden border-t border-white/[0.04]">
+      {/* Atmospheric glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse 40% 60% at 90% 50%, rgba(10,186,181,0.04) 0%, transparent 60%)`,
+        }}
+      />
+
+      <div className="max-w-4xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -44,10 +52,10 @@ export default function FAQSection() {
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="mb-14"
         >
-          <span className="inline-block px-3 py-1.5 rounded-full bg-[#0ABAB5]/8 border border-[#0ABAB5]/20 text-[#0ABAB5] text-xs font-semibold uppercase tracking-wide mb-4">
+          <span className="inline-block px-3 py-1.5 rounded-full bg-[#0ABAB5]/10 border border-[#0ABAB5]/20 text-[#0ABAB5] text-xs font-semibold uppercase tracking-wide mb-4">
             FAQ
           </span>
-          <h2 className="font-display font-extrabold text-[#0A0A0F] text-4xl md:text-[3rem] leading-[1.05] tracking-[-0.03em]">
+          <h2 className="font-display font-extrabold text-white text-4xl md:text-[3rem] leading-[1.05] tracking-[-0.03em]">
             Preguntas frecuentes.
           </h2>
         </motion.div>
@@ -60,21 +68,34 @@ export default function FAQSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.45, delay: i * 0.05, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="rounded-2xl bg-white border border-[#E5E7EB] overflow-hidden hover:border-[#0ABAB5]/25 transition-colors duration-300"
+              className={`rounded-2xl overflow-hidden transition-all duration-300 ${
+                openIndex === i
+                  ? 'bg-white/[0.05] border border-[#0ABAB5]/25 shadow-[0_0_24px_rgba(10,186,181,0.06)]'
+                  : 'bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12]'
+              }`}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full px-6 py-5 flex items-center justify-between text-left"
               >
-                <h3 className="text-base font-semibold text-[#0A0A0F] pr-4">
+                <h3 className="text-base font-semibold text-white/80 pr-4 hover:text-white transition-colors">
                   {faq.q}
                 </h3>
                 <motion.div
                   animate={{ rotate: openIndex === i ? 45 : 0 }}
                   transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="shrink-0 w-7 h-7 rounded-full bg-[#F3F4F6] flex items-center justify-center"
+                  className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                    openIndex === i
+                      ? 'bg-[#0ABAB5]/20 border border-[#0ABAB5]/40'
+                      : 'bg-white/[0.06] border border-white/[0.08]'
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5 text-[#6B7280]" strokeWidth={2.5} />
+                  <Plus
+                    className={`w-3.5 h-3.5 transition-colors duration-200 ${
+                      openIndex === i ? 'text-[#0ABAB5]' : 'text-white/40'
+                    }`}
+                    strokeWidth={2.5}
+                  />
                 </motion.div>
               </button>
 
@@ -87,7 +108,7 @@ export default function FAQSection() {
                     transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
                     className="overflow-hidden"
                   >
-                    <div className="px-6 pb-5 text-sm text-[#6B7280] leading-relaxed border-t border-[#F3F4F6] pt-4">
+                    <div className="px-6 pb-5 text-sm text-white/45 leading-relaxed border-t border-white/[0.06] pt-4">
                       {faq.a}
                     </div>
                   </motion.div>

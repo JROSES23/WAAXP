@@ -97,8 +97,8 @@ export default function PricingSection() {
                 transition={{ duration: 0.55, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className={`relative rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ${
                   plan.popular
-                    ? 'bg-white border-2 border-[#0ABAB5] shadow-[0_0_0_1px_rgba(10,186,181,0.15),0_24px_48px_rgba(10,186,181,0.12)]'
-                    : 'bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.14]'
+                    ? 'bg-[#0ABAB5]/[0.08] border border-[#0ABAB5]/40 shadow-[0_0_60px_rgba(10,186,181,0.15)] hover:shadow-[0_0_80px_rgba(10,186,181,0.22)]'
+                    : 'bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.05]'
                 }`}
               >
                 {plan.popular && (
@@ -122,17 +122,15 @@ export default function PricingSection() {
                   </div>
 
                   {/* Price */}
-                  <p className={`text-sm font-semibold mb-1 ${plan.popular ? 'text-[#374151]' : 'text-white/40'}`}>
+                  <p className="text-sm font-semibold mb-1 text-white/40">
                     {plan.name}
                   </p>
                   <div className="flex items-baseline gap-1 mb-1">
-                    <span className={`font-display font-extrabold text-4xl tracking-[-0.04em] ${
-                      plan.popular ? 'text-[#0A0A0F]' : 'text-white'
-                    }`}>
+                    <span className="font-display font-extrabold text-4xl tracking-[-0.04em] text-white">
                       {plan.price}
                     </span>
                   </div>
-                  <p className={`text-xs mb-6 ${plan.popular ? 'text-[#9CA3AF]' : 'text-white/25'}`}>
+                  <p className="text-xs mb-6 text-white/30">
                     {plan.period}
                   </p>
 
@@ -145,7 +143,7 @@ export default function PricingSection() {
                           style={{ color: plan.accentColor }}
                           strokeWidth={2.5}
                         />
-                        <span className={`text-sm ${plan.popular ? 'text-[#374151]' : 'text-white/50'}`}>
+                        <span className="text-sm text-white/55">
                           {f}
                         </span>
                       </li>

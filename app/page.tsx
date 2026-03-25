@@ -20,7 +20,7 @@ export default function LandingPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#080C14]">
       <Navbar />
       <HeroSection onOpenVideo={() => setIsVideoOpen(true)} />
       <ProblemSection />
