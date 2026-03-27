@@ -29,11 +29,29 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     const supabase = await createClient()
 
     const {
-      data: { user },
+      data: { user: userFromServer },
       error: authError,
     } = await supabase.auth.getUser()
 
-    if (authError || !user) return null
+    let user = userFromServer
+
+    if (authError) {
+      // Concurrent token refresh race — another request already used the refresh token.
+      // The user IS authenticated; fall back to reading the session from cookies
+      // (no server round-trip, but safe since the race winner already validated).
+      const isRefreshRace =
+        authError.message?.toLowerCase().includes('refresh_token_already_used') ||
+        (authError as { code?: string }).code === 'refresh_token_already_used'
+
+      if (isRefreshRace) {
+        const { data: sessionData } = await supabase.auth.getSession()
+        user = sessionData?.session?.user ?? null
+      } else {
+        return null
+      }
+    }
+
+    if (!user) return null
 
     const isSuperAdmin =
       user.app_metadata?.is_superadmin === true ||
