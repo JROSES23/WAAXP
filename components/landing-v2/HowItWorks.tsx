@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { QrCode, Bot, TrendingUp, ArrowRight } from 'lucide-react'
+import { QrCode, Bot, TrendingUp } from 'lucide-react'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
@@ -9,57 +9,41 @@ const STEPS = [
   {
     number: '01',
     icon: QrCode,
-    title: 'Conecta tu WhatsApp',
-    desc: 'Escanea el QR con tu número Business. Sin instalar nada. Funciona con cualquier WhatsApp.',
+    title: 'Conecta en 2 minutos',
+    desc: 'Escanea el código QR con tu número de WhatsApp Business. Sin instalar apps, sin configuración técnica.',
+    detail: 'Compatible con cualquier número WhatsApp',
   },
   {
     number: '02',
     icon: Bot,
-    title: 'Configura a LEVI',
-    desc: 'Le dices cómo hablar, qué vender y cómo responder. Todo en español, en menos de 15 minutos.',
+    title: 'Entrena a LEVI',
+    desc: 'Le explicas tu negocio, tus productos y cómo quieres que hable. En menos de 15 minutos está listo.',
+    detail: 'Todo en español, sin código',
   },
   {
     number: '03',
     icon: TrendingUp,
-    title: 'Empieza a vender',
-    desc: 'WAAXP atiende clientes 24/7. Tú revisas el dashboard y apruebas lo que quieras.',
+    title: 'A vender solo',
+    desc: 'LEVI atiende clientes 24/7, responde preguntas, toma pedidos y califica leads. Tú solo revisas lo importante.',
+    detail: 'Dashboard en tiempo real',
   },
 ]
 
-/* Liquid glass card style */
-const GLASS: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.62)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.82)',
-  boxShadow: '0 8px 32px rgba(10,186,181,0.07), 0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.95)',
-}
-
 export default function HowItWorks() {
   return (
-    <section
-      id="como-funciona"
-      className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-      style={{ background: '#FFFFFF', fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif' }}
-    >
-      {/* Background blobs */}
+    <section id="como-funciona" className="relative py-24 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #060a10 0%, #080e18 100%)', fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif' }}>
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div style={{
-          position: 'absolute', top: '20%', left: '-8%',
-          width: '50%', height: '65%', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(10,186,181,0.15) 0%, transparent 68%)',
+          position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+          width: '80%', height: '60%', borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(10,186,181,0.07) 0%, transparent 65%)',
           filter: 'blur(80px)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '10%', right: '-5%',
-          width: '45%', height: '55%', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(10,186,181,0.09) 0%, transparent 65%)',
-          filter: 'blur(90px)',
         }} />
       </div>
 
-      <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -67,34 +51,25 @@ export default function HowItWorks() {
           transition={{ duration: 0.6, ease: EASE }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5"
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#0ABAB5' }}>
+            Cómo funciona
+          </p>
+          <h2 className="font-display font-black leading-[1.05]"
             style={{
-              background: 'rgba(255,255,255,0.72)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(10,186,181,0.22)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)',
-            }}
-          >
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#0ABAB5' }}>
-              Cómo funciona
-            </span>
-          </div>
-          <h2
-            className="font-display font-black leading-[1.06]"
-            style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              color: '#0D1B2A',
+              fontSize: 'clamp(2rem, 4.5vw, 3.5rem)',
+              color: '#F0F6FF',
               fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-              letterSpacing: '-0.025em',
-            }}
-          >
+              letterSpacing: '-0.03em',
+            }}>
             De cero a ventas en 15 minutos.
           </h2>
         </motion.div>
 
-        {/* Steps */}
-        <div className="grid md:grid-cols-3 gap-6 items-stretch">
+        <div className="relative grid md:grid-cols-3 gap-6">
+          {/* Connecting line (desktop) */}
+          <div className="hidden md:block absolute top-[3.25rem] left-[calc(33.33%+1rem)] right-[calc(33.33%+1rem)] h-px"
+            style={{ background: 'linear-gradient(90deg, rgba(10,186,181,0.4) 0%, rgba(10,186,181,0.1) 50%, rgba(10,186,181,0.4) 100%)' }} />
+
           {STEPS.map((step, i) => {
             const Icon = step.icon
             return (
@@ -104,66 +79,58 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.55, delay: i * 0.12, ease: EASE }}
-                whileHover={{ y: -4, transition: { type: 'spring', stiffness: 380, damping: 28 } }}
-                className="relative rounded-2xl p-6 flex flex-col overflow-hidden"
+                className="relative rounded-2xl p-6 flex flex-col overflow-hidden group"
                 style={{
-                  ...GLASS,
-                  borderLeft: '2px solid #0ABAB5',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  transition: 'border-color 0.3s ease',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(10,186,181,0.3)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
               >
-                {/* Inner refraction */}
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: 'inherit',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.50) 0%, transparent 55%)',
-                  pointerEvents: 'none',
-                }} />
-
-                {/* Watermark step number */}
-                <div
-                  className="absolute -top-4 -left-2 font-display font-black leading-none select-none pointer-events-none"
+                {/* Watermark number */}
+                <div className="absolute -top-3 -right-2 font-display font-black select-none pointer-events-none"
                   style={{
-                    fontSize: '7rem',
-                    color: 'rgba(10,186,181,0.07)',
-                    fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-                  }}
-                >
+                    fontSize: '6rem',
+                    color: 'rgba(10,186,181,0.05)',
+                    fontFamily: 'var(--font-display)',
+                    lineHeight: 1,
+                  }}>
                   {step.number}
                 </div>
 
                 {/* Icon */}
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 relative"
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 relative"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(10,186,181,0.15) 0%, rgba(10,186,181,0.06) 100%)',
-                    border: '1px solid rgba(10,186,181,0.25)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-                  }}
-                >
-                  <Icon className="w-5 h-5 text-[#0ABAB5]" strokeWidth={1.5} />
+                    background: 'rgba(10,186,181,0.10)',
+                    border: '1px solid rgba(10,186,181,0.20)',
+                  }}>
+                  <Icon className="w-5 h-5" style={{ color: '#0ABAB5' }} strokeWidth={1.5} />
                 </div>
 
-                <h3
-                  className="font-semibold text-lg mb-2 relative"
+                <div className="text-xs font-bold mb-3 tabular-nums"
+                  style={{ color: 'rgba(10,186,181,0.7)' }}>
+                  {step.number}
+                </div>
+
+                <h3 className="font-semibold text-lg mb-3"
                   style={{
-                    color: '#0D1B2A',
+                    color: '#F0F6FF',
                     fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-                  }}
-                >
+                  }}>
                   {step.title}
                 </h3>
-                <p className="text-sm leading-relaxed relative flex-1" style={{ color: '#5C6B7A' }}>
+                <p className="text-sm leading-relaxed flex-1 mb-4"
+                  style={{ color: 'rgba(240,246,255,0.50)' }}>
                   {step.desc}
                 </p>
-
-                {/* Step number badge */}
-                <div
-                  className="mt-4 relative inline-flex items-center gap-1.5 text-xs font-bold"
-                  style={{ color: '#0ABAB5' }}
-                >
-                  <span>{step.number}</span>
-                  {i < STEPS.length - 1 && (
-                    <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
-                  )}
+                <div className="text-xs font-medium px-3 py-1.5 rounded-full w-fit"
+                  style={{
+                    background: 'rgba(10,186,181,0.08)',
+                    border: '1px solid rgba(10,186,181,0.15)',
+                    color: 'rgba(10,186,181,0.8)',
+                  }}>
+                  {step.detail}
                 </div>
               </motion.div>
             )

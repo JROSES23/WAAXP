@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { ThemeProvider as NextThemesProvider, useTheme } from 'next-themes'
+import { ModalStoreProvider } from '@/lib/modal-store'
 
 /* ─────────────────────────────────────────────
    ACCENT CONTEXT
@@ -84,7 +85,9 @@ export function Providers({ children }: ProvidersProps) {
       disableTransitionOnChange
     >
       <AccentProvider>
-        {children}
+        <ModalStoreProvider>
+          {children}
+        </ModalStoreProvider>
       </AccentProvider>
     </NextThemesProvider>
   )

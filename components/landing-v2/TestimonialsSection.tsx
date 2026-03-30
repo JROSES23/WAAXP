@@ -5,133 +5,64 @@ import { Star } from 'lucide-react'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
-const STATS = [
-  { value: '+340', label: 'negocios activos' },
-  { value: '$4.2B', label: 'CLP procesados' },
-  { value: '94%', label: 'automatización' },
-]
-
 const TESTIMONIALS = [
   {
-    quote: 'WAAXP cambió mi negocio. Antes perdía el 40% de las consultas por WhatsApp porque no podía responder rápido. Ahora LEVI responde en segundos y yo cierro la venta.',
+    quote: 'Antes perdía el 40% de las consultas por WhatsApp. Ahora LEVI responde en segundos y yo solo cierro las ventas. Increíble.',
     name: 'Valentina Torres',
-    role: 'Dueña',
-    company: 'Tienda de ropa, Santiago',
+    role: 'Dueña · Tienda de ropa, Santiago',
+    initials: 'VT',
+    color: '#0ABAB5',
   },
   {
-    quote: 'Lo que más me sorprendió es que mis clientes no se dan cuenta de que es un bot. Las conversaciones son naturales y el bot ya sabe todo sobre mis tratamientos.',
+    quote: 'Lo que más me sorprendió es que mis clientes no se dan cuenta de que es un bot. Las conversaciones se sienten completamente naturales.',
     name: 'Diego Contreras',
-    role: 'Director',
-    company: 'Clínica dental, Viña del Mar',
+    role: 'Director · Clínica dental, Viña del Mar',
+    initials: 'DC',
+    color: '#7c3aed',
   },
   {
-    quote: 'Teníamos 3 personas contestando WhatsApp. Hoy WAAXP hace el 90% del trabajo y esas personas hacen cosas que realmente valen la pena. Claramente la mejor inversión del año.',
+    quote: 'Teníamos 3 personas contestando WhatsApp. Hoy WAAXP hace el 90% del trabajo. Esas personas ahora hacen cosas que realmente importan.',
     name: 'Sofía Herrera',
-    role: 'Gerenta',
-    company: 'Distribuidora de insumos, Concepción',
+    role: 'Gerenta · Distribuidora, Concepción',
+    initials: 'SH',
+    color: '#0891b2',
   },
 ]
 
 export default function TestimonialsSection() {
   return (
-    <section
-      className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(145deg, #0ABAB5 0%, #079490 100%)',
-        fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif',
-      }}
-    >
-      {/* Background teal blobs for depth */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <section className="relative py-24 overflow-hidden"
+      style={{ background: '#060a10', fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif' }}>
+
+      <div className="absolute inset-0 pointer-events-none">
         <div style={{
-          position: 'absolute', top: '-20%', left: '-10%',
-          width: '60%', height: '70%', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 65%)',
-          filter: 'blur(60px)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-15%', right: '-5%',
-          width: '50%', height: '60%', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0,0,0,0.10) 0%, transparent 65%)',
+          position: 'absolute', bottom: '-10%', left: '50%', transform: 'translateX(-50%)',
+          width: '70%', height: '50%', borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(10,186,181,0.06) 0%, transparent 65%)',
           filter: 'blur(80px)',
         }} />
-        {/* Large decorative quote mark */}
-        <div
-          className="absolute -top-4 left-8 font-display font-black leading-none select-none"
-          style={{
-            fontSize: '20rem',
-            color: 'rgba(255,255,255,0.06)',
-            fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-            lineHeight: 1,
-          }}
-        >
-          "
-        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto relative z-10">
-        {/* Social proof bar — glass pills */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="flex flex-wrap justify-center gap-4 mb-16"
+          transition={{ duration: 0.6, ease: EASE }}
+          className="text-center mb-14"
         >
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              className="px-5 py-3 rounded-2xl relative overflow-hidden"
-              style={{
-                background: 'rgba(255,255,255,0.14)',
-                backdropFilter: 'blur(20px) saturate(160%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-                border: '1px solid rgba(255,255,255,0.28)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30)',
-              }}
-            >
-              {/* Inner refraction */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.20) 0%, transparent 55%)',
-                pointerEvents: 'none',
-              }} />
-              <div
-                className="font-display font-black text-2xl leading-none relative"
-                style={{
-                  color: '#FFFFFF',
-                  fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-                }}
-              >
-                {s.value}
-              </div>
-              <div className="text-xs relative" style={{ color: 'rgba(255,255,255,0.70)' }}>{s.label}</div>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Section label */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-          className="text-center mb-12"
-        >
-          <h2
-            className="font-display font-black leading-[1.06]"
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#0ABAB5' }}>Testimonios</p>
+          <h2 className="font-display font-black leading-[1.05]"
             style={{
               fontSize: 'clamp(2rem, 4vw, 3rem)',
-              color: '#FFFFFF',
+              color: '#F0F6FF',
               fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-              letterSpacing: '-0.025em',
-            }}
-          >
+              letterSpacing: '-0.03em',
+            }}>
             Lo que dicen quienes ya no pierden ventas.
           </h2>
         </motion.div>
 
-        {/* Testimonial cards — liquid glass on teal */}
         <div className="grid md:grid-cols-3 gap-5">
           {TESTIMONIALS.map((t, i) => (
             <motion.div
@@ -143,50 +74,30 @@ export default function TestimonialsSection() {
               whileHover={{ y: -4, transition: { type: 'spring', stiffness: 380, damping: 28 } }}
               className="relative rounded-2xl p-6 flex flex-col overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.14)',
-                backdropFilter: 'blur(20px) saturate(160%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-                border: '1px solid rgba(255,255,255,0.28)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.35)',
-              }}
-            >
-              {/* Refraction */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%)',
-                pointerEvents: 'none',
-              }} />
-
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(12px)',
+              }}>
+              {/* Top glow */}
+              <div className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: `linear-gradient(90deg, transparent, ${t.color}40, transparent)` }} />
               {/* Stars */}
-              <div className="flex gap-0.5 mb-4 relative">
+              <div className="flex gap-0.5 mb-4">
                 {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.85)' }} fill="rgba(255,255,255,0.85)" strokeWidth={0} />
+                  <Star key={j} className="w-3.5 h-3.5" style={{ color: t.color }} fill={t.color} strokeWidth={0} />
                 ))}
               </div>
-
-              <p
-                className="text-sm leading-relaxed flex-1 mb-5 relative"
-                style={{ color: 'rgba(255,255,255,0.88)' }}
-              >
-                "{t.quote}"
+              <p className="text-sm leading-relaxed flex-1 mb-6" style={{ color: 'rgba(240,246,255,0.65)' }}>
+                &ldquo;{t.quote}&rdquo;
               </p>
-
-              <div className="relative flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
-                  style={{
-                    background: 'rgba(255,255,255,0.22)',
-                    border: '1px solid rgba(255,255,255,0.35)',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  {t.name[0]}
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ background: `${t.color}20`, border: `1px solid ${t.color}40`, color: t.color }}>
+                  {t.initials}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>{t.name}</div>
-                  <div className="text-xs" style={{ color: 'rgba(255,255,255,0.60)' }}>
-                    {t.role} · {t.company}
-                  </div>
+                  <div className="text-sm font-semibold" style={{ color: '#F0F6FF' }}>{t.name}</div>
+                  <div className="text-xs" style={{ color: 'rgba(240,246,255,0.40)' }}>{t.role}</div>
                 </div>
               </div>
             </motion.div>

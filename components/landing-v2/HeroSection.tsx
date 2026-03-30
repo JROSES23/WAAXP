@@ -1,424 +1,349 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Play, ArrowRight, Bot, Wifi, TrendingUp, Clock } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowRight, Zap, CheckCircle2 } from 'lucide-react'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
-interface HeroSectionProps {
-  onOpenVideo: () => void
-}
-
-const CHAT = [
-  { role: 'user', text: 'Hola, quiero cotizar uniformes para mi empresa' },
-  { role: 'bot',  text: 'Hola! Soy LEVI. ¿Cuántas unidades necesitas y para cuándo?' },
-  { role: 'user', text: '50 poleras con logo, para la próxima semana' },
-  { role: 'bot',  text: 'Para 50 poleras bordadas el precio es $14.900 c/u. Te envío la cotización ahora.' },
+// Chat conversation sequence
+const CHAT_SEQUENCE = [
+  { id: 1, from: 'client' as const, text: 'Hola! tienen zapatillas Nike Air Max?', delay: 800 },
+  { id: 2, from: 'levi' as const, text: 'Hola! Sí, tenemos Air Max 270 en negro, blanco y gris. Tallas 38–45. ¿Cuál buscas?', delay: 2400 },
+  { id: 3, from: 'client' as const, text: 'La blanca talla 42. Cuánto cuesta?', delay: 4800 },
+  { id: 4, from: 'levi' as const, text: '$89.990 CLP. Stock disponible. ¿Te la reservo con tu nombre?', delay: 6400 },
+  { id: 5, from: 'client' as const, text: 'Sí! Me llamo Diego Contreras', delay: 8800 },
+  { id: 6, from: 'levi' as const, text: 'Perfecto Diego. Te envío el link de pago por Webpay ahora.', delay: 10400 },
 ]
 
-/* ── Liquid glass token ── */
-const GLASS = {
-  background: 'rgba(255,255,255,0.62)',
-  backdropFilter: 'blur(24px) saturate(200%)',
-  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-  border: '1px solid rgba(255,255,255,0.80)',
-  boxShadow:
-    '0 24px 64px rgba(10,186,181,0.10), 0 4px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.95)',
-} as React.CSSProperties
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-3 py-2.5 rounded-2xl rounded-bl-sm w-fit"
+      style={{ background: 'rgba(10,186,181,0.12)', border: '1px solid rgba(10,186,181,0.2)' }}>
+      {[0, 1, 2].map(i => (
+        <span key={i} className="w-1.5 h-1.5 rounded-full animate-[dot-bounce_1.4s_ease-in-out_infinite]"
+          style={{ background: '#0ABAB5', animationDelay: `${i * 0.16}s` }} />
+      ))}
+    </div>
+  )
+}
 
-const GLASS_BADGE = {
-  background: 'rgba(255,255,255,0.72)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.85)',
-  boxShadow:
-    '0 8px 24px rgba(10,186,181,0.12), inset 0 1px 0 rgba(255,255,255,1)',
-} as React.CSSProperties
+// ShimmerButton inline
+function ShimmerBtn({ children, className, href }: { children: React.ReactNode; className?: string; href: string }) {
+  return (
+    <Link href={href}
+      className={`group relative inline-flex cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap border border-white/[0.12] px-6 py-3.5 font-semibold text-white [border-radius:14px] ${className ?? ''}`}
+      style={{ '--speed': '3s', '--bg': 'rgba(10,186,181,0.15)' } as React.CSSProperties}
+    >
+      <div className="absolute inset-0 overflow-visible [container-type:size] z-0">
+        <div className="absolute inset-0 h-[100cqh] animate-shimmer-slide [aspect-ratio:1] [border-radius:0] [mask:none] blur-[3px]">
+          <div className="animate-spin-around absolute -inset-full w-auto rotate-0 [background:conic-gradient(from_calc(270deg-(90deg*0.5)),transparent_0,rgba(10,186,181,0.9)_90deg,transparent_90deg)]" />
+        </div>
+      </div>
+      <div className="absolute inset-[1px] rounded-[13px] z-0" style={{ background: 'rgba(6,10,16,0.85)' }} />
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
+    </Link>
+  )
+}
 
-export default function HeroSection({ onOpenVideo }: HeroSectionProps) {
-  const [counter, setCounter] = useState(1247)
+export default function HeroSection({ onOpenVideo }: { onOpenVideo?: () => void }) {
+  const [messages, setMessages] = useState<typeof CHAT_SEQUENCE>([])
+  const [typing, setTyping] = useState(false)
+  const chatRef = useRef<HTMLDivElement>(null)
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const startSequence = () => {
+    timeoutsRef.current.forEach(clearTimeout)
+    timeoutsRef.current = []
+    setMessages([])
+    setTyping(false)
+
+    CHAT_SEQUENCE.forEach((msg) => {
+      if (msg.from === 'levi') {
+        const typingDelay = msg.delay - 1100
+        const t1 = setTimeout(() => setTyping(true), typingDelay)
+        timeoutsRef.current.push(t1)
+      }
+      const t2 = setTimeout(() => {
+        setTyping(false)
+        setMessages(prev => [...prev, msg])
+      }, msg.delay)
+      timeoutsRef.current.push(t2)
+    })
+
+    const last = CHAT_SEQUENCE[CHAT_SEQUENCE.length - 1]
+    const restartTimer = setTimeout(() => startSequence(), last.delay + 4000)
+    timeoutsRef.current.push(restartTimer)
+  }
 
   useEffect(() => {
-    const id = setInterval(
-      () => setCounter((c) => c + Math.floor(Math.random() * 3) + 1),
-      800
-    )
-    return () => clearInterval(id)
+    startSequence()
+    return () => timeoutsRef.current.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const stats = [
-    { value: '+340', label: 'PYMEs activas' },
-    { value: '94%', label: 'automatizado' },
-    { value: '2.8s', label: 'respuesta' },
-  ]
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight
+    }
+  }, [messages, typing])
 
   return (
     <section
       id="inicio"
-      className="relative min-h-screen flex items-center overflow-hidden pt-16"
-      style={{ background: '#FFFFFF', fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif' }}
+      className="relative min-h-screen flex items-center overflow-hidden"
+      style={{
+        background: '#060a10',
+        fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif',
+      }}
     >
-      {/* ── Liquid glass background blobs ── */}
+      {/* Background grid */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }} />
+
+      {/* Radial glows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Primary teal blob — top left */}
-        <div
-          style={{
-            position: 'absolute', top: '-15%', left: '-10%',
-            width: '65%', height: '75%', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(10,186,181,0.22) 0%, transparent 68%)',
-            filter: 'blur(72px)',
-          }}
-        />
-        {/* Secondary blob — bottom right */}
-        <div
-          style={{
-            position: 'absolute', bottom: '5%', right: '-5%',
-            width: '55%', height: '65%', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(10,186,181,0.13) 0%, transparent 65%)',
-            filter: 'blur(90px)',
-          }}
-        />
-        {/* Accent blob — center */}
-        <div
-          style={{
-            position: 'absolute', top: '35%', left: '35%',
-            width: '38%', height: '45%', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(14,210,204,0.09) 0%, transparent 65%)',
-            filter: 'blur(56px)',
-          }}
-        />
-        {/* Subtle grid */}
-        <div
-          style={{
-            position: 'absolute', inset: 0, opacity: 0.018,
-            backgroundImage:
-              'linear-gradient(rgba(10,186,181,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(10,186,181,0.8) 1px, transparent 1px)',
-            backgroundSize: '72px 72px',
-          }}
-        />
+        <div style={{
+          position: 'absolute', top: '-20%', right: '-10%',
+          width: '60%', height: '80%', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(10,186,181,0.12) 0%, transparent 65%)',
+          filter: 'blur(60px)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-10%', left: '-10%',
+          width: '50%', height: '60%', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(10,186,181,0.07) 0%, transparent 65%)',
+          filter: 'blur(80px)',
+        }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-32 lg:py-0">
+        <div className="grid lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_520px] gap-12 lg:gap-16 xl:gap-20 items-center">
 
-        {/* ── Live counter ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: EASE }}
-          className="text-center mb-10"
-        >
-          {/* Glass pill label */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-5"
-            style={{
-              background: 'rgba(255,255,255,0.65)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(10,186,181,0.20)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)',
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0ABAB5] animate-pulse" />
-            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#0ABAB5' }}>
-              En este momento en Chile
-            </span>
-          </div>
-
-          {/* Huge counter */}
-          <div
-            className="font-display font-black leading-none tracking-[-0.04em]"
-            style={{
-              fontSize: 'clamp(5rem, 14vw, 10rem)',
-              color: '#0ABAB5',
-              fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-              textShadow: '0 0 80px rgba(10,186,181,0.25)',
-            }}
-            suppressHydrationWarning
-          >
-            {counter.toLocaleString('es-CL')}
-          </div>
-
-          <p className="text-lg mt-3 font-medium" style={{ color: '#5C6B7A' }}>
-            mensajes sin responder
-          </p>
-
-          <div className="mt-8 max-w-2xl mx-auto h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(10,186,181,0.25), transparent)' }}
-          />
-        </motion.div>
-
-        {/* ── Two columns ── */}
-        <div className="grid lg:grid-cols-[55%_45%] gap-12 lg:gap-16 items-center">
-
-          {/* Left */}
+          {/* LEFT: Editorial */}
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.18, ease: EASE }}
+            transition={{ duration: 0.7, ease: EASE }}
           >
-            <h1
-              className="font-display font-black leading-[1.06] mb-5"
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
               style={{
-                fontSize: 'clamp(2.2rem, 4.5vw, 3.6rem)',
-                color: '#0D1B2A',
+                background: 'rgba(10,186,181,0.08)',
+                border: '1px solid rgba(10,186,181,0.25)',
+              }}>
+              <Zap className="w-3.5 h-3.5" style={{ color: '#0ABAB5' }} strokeWidth={2} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#0ABAB5' }}>
+                IA para WhatsApp Business
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h1
+              className="font-display font-black leading-[0.95] mb-6"
+              style={{
+                fontSize: 'clamp(3rem, 7vw, 5.5rem)',
+                letterSpacing: '-0.04em',
                 fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-                letterSpacing: '-0.025em',
+                color: '#F0F6FF',
               }}
             >
-              Cada mensaje sin responder es dinero que no vuelve.
+              Vende más.
+              <br />
+              <span style={{
+                background: 'linear-gradient(135deg, #0ABAB5 0%, #2dd4bf 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                Sin contratar
+              </span>
+              <br />
+              a nadie más.
             </h1>
 
-            <p className="text-lg leading-relaxed mb-8" style={{ color: '#5C6B7A' }}>
-              WAAXP atiende, cotiza y cierra ventas por WhatsApp 24/7.
-              Para PYMEs que no pueden darse el lujo de perder clientes.
+            {/* Sub */}
+            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-lg"
+              style={{ color: 'rgba(240,246,255,0.55)', fontWeight: 400 }}>
+              LEVI aprende tu negocio, atiende clientes por WhatsApp 24/7, califica leads y cierra ventas — automáticamente.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-wrap items-center gap-3 mb-5">
-              <Link
-                href="/login"
-                className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
-                style={{
-                  background: 'linear-gradient(135deg, #0ABAB5 0%, #08a5a0 100%)',
-                  boxShadow: '0 4px 20px rgba(10,186,181,0.35), inset 0 1px 0 rgba(255,255,255,0.18)',
-                }}
-              >
-                Activar gratis
-                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2} />
-              </Link>
-
+            <div className="flex flex-wrap gap-4 mb-12">
+              <ShimmerBtn href="/login" className="text-sm">
+                Empezar gratis
+                <ArrowRight className="w-4 h-4" strokeWidth={2} />
+              </ShimmerBtn>
               <button
                 onClick={onOpenVideo}
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-[14px] text-sm font-semibold transition-colors duration-200"
                 style={{
-                  ...GLASS_BADGE,
-                  color: '#0D1B2A',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  color: 'rgba(240,246,255,0.75)',
+                  background: 'transparent',
                 }}
-              >
-                <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: '#EDFAFA', border: '1px solid rgba(10,186,181,0.28)' }}
-                >
-                  <Play className="w-[10px] h-[10px] text-[#0ABAB5]" fill="#0ABAB5" strokeWidth={0} />
-                </div>
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.color = '#F0F6FF'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'rgba(240,246,255,0.75)'
+                }}>
                 Ver demo
               </button>
             </div>
 
-            {/* Trust */}
-            <p className="text-xs mb-8" style={{ color: '#8FA3B5' }}>
-              Sin tarjeta · Setup 5 min · Cancela cuando quieras
-            </p>
-
-            {/* Stats row — glass pills */}
-            <div className="flex flex-wrap gap-4">
-              {stats.map((s) => (
-                <div
-                  key={s.label}
-                  className="px-4 py-2.5 rounded-xl relative overflow-hidden"
-                  style={GLASS_BADGE}
-                >
-                  {/* Inner refraction */}
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: 'inherit',
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.45) 0%, transparent 55%)',
-                    pointerEvents: 'none',
-                  }} />
-                  <div className="font-display font-black text-xl relative"
-                    style={{ color: '#0D1B2A', fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif' }}
-                  >
-                    {s.value}
-                  </div>
-                  <div className="text-[11px] relative" style={{ color: '#5C6B7A' }}>{s.label}</div>
+            {/* Social proof */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {[
+                '340+ negocios activos',
+                '$4.2B CLP procesados',
+                '94% automatización',
+              ].map(item => (
+                <div key={item} className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: '#0ABAB5' }} strokeWidth={2} />
+                  <span className="text-sm" style={{ color: 'rgba(240,246,255,0.50)' }}>{item}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* Right — liquid glass chat card */}
+          {/* RIGHT: Animated chat */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 32 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.75, delay: 0.28, ease: EASE }}
+            transition={{ duration: 0.7, delay: 0.15, ease: EASE }}
             className="relative"
           >
-            {/* Floating badge — top right */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 1.1, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute -top-4 -right-4 z-20 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl"
-              style={GLASS_BADGE}
-            >
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 55%)',
-                pointerEvents: 'none',
-              }} />
-              <TrendingUp className="w-3.5 h-3.5 relative" style={{ color: '#0ABAB5' }} strokeWidth={2} />
-              <span className="text-xs font-bold relative" style={{ color: '#0D1B2A' }}>+62% ventas</span>
-            </motion.div>
-
-            {/* Floating badge — bottom left */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 1.3, ease: [0.34, 1.56, 0.64, 1] }}
-              className="absolute -bottom-4 -left-4 z-20 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl"
-              style={GLASS_BADGE}
-            >
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 55%)',
-                pointerEvents: 'none',
-              }} />
-              <Clock className="w-3.5 h-3.5 relative" style={{ color: '#0ABAB5' }} strokeWidth={2} />
-              <span className="text-xs font-bold relative" style={{ color: '#0D1B2A' }}>Respuesta: 2.8s</span>
-            </motion.div>
-
-            {/* Chat card — liquid glass */}
-            <div
-              className="relative rounded-[2rem] overflow-hidden"
-              style={GLASS}
-            >
-              {/* Inner refraction overlay */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit', zIndex: 0,
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 45%, transparent 65%)',
-                pointerEvents: 'none',
-              }} />
-              {/* Top specular line */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: 'inherit', zIndex: 0,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.70) 0%, transparent 8%)',
-                pointerEvents: 'none',
-              }} />
-
-              {/* Status bar */}
-              <div className="relative z-10 flex items-center justify-between px-5 pt-4 pb-2">
-                <span className="text-[11px] font-semibold" style={{ color: '#0D1B2A' }}>9:41</span>
-                <div className="flex items-center gap-1.5">
-                  <Wifi className="w-3 h-3" style={{ color: '#5C6B7A' }} strokeWidth={1.5} />
-                  <div className="flex gap-0.5">
-                    {[3, 4, 5, 4].map((h, i) => (
-                      <div key={i} className="w-1 rounded-sm" style={{ height: h * 2, background: '#0D1B2A', opacity: 0.4 }} />
-                    ))}
-                  </div>
-                </div>
+            {/* Floating response time badge */}
+            <div className="absolute -top-4 -right-2 lg:-right-6 z-20 px-3 py-2 rounded-2xl text-xs font-semibold"
+              style={{
+                background: 'rgba(6,10,16,0.9)',
+                border: '1px solid rgba(10,186,181,0.3)',
+                color: '#0ABAB5',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 0 20px rgba(10,186,181,0.2)',
+              }}>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0ABAB5] animate-pulse" />
+                Responde en &lt;3s
               </div>
+            </div>
 
-              {/* WhatsApp header */}
-              <div
-                className="relative z-10 flex items-center gap-3 px-5 py-3"
-                style={{ background: 'rgba(249,250,251,0.70)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: 'linear-gradient(135deg, #0ABAB5 0%, #08a5a0 100%)',
-                    boxShadow: '0 0 12px rgba(10,186,181,0.30)',
-                  }}
-                >
-                  <Bot className="w-4 h-4 text-white" strokeWidth={1.5} />
+            {/* Chat widget */}
+            <div className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                backdropFilter: 'blur(24px) saturate(160%)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(10,186,181,0.08)',
+              }}>
+              {/* Header */}
+              <div className="flex items-center gap-3 px-4 py-3.5"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                  style={{ background: 'linear-gradient(135deg, #0ABAB5, #079490)', color: '#fff' }}>
+                  L
                 </div>
                 <div>
-                  <div className="text-sm font-semibold" style={{ color: '#0D1B2A' }}>LEVI · Asistente WAAXP</div>
-                  <div className="flex items-center gap-1 text-xs" style={{ color: '#5C6B7A' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 4px rgba(34,197,94,0.6)' }} />
-                    En línea · responde en segundos
+                  <div className="text-sm font-semibold" style={{ color: '#F0F6FF' }}>LEVI</div>
+                  <div className="text-xs flex items-center gap-1.5" style={{ color: '#0ABAB5' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0ABAB5]" />
+                    Asistente activo
                   </div>
+                </div>
+                {/* macOS dots */}
+                <div className="ml-auto flex gap-1.5">
+                  {['#ef4444', '#f59e0b', '#22c55e'].map(c => (
+                    <div key={c} className="w-2.5 h-2.5 rounded-full opacity-60" style={{ background: c }} />
+                  ))}
                 </div>
               </div>
 
               {/* Messages */}
-              <div
-                className="relative z-10 px-4 py-4 space-y-3 min-h-[260px]"
-                style={{ background: 'rgba(248,250,252,0.55)' }}
-              >
-                {CHAT.map((msg, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.7 + i * 0.18, ease: EASE }}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className="max-w-[80%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed font-medium"
-                      style={
-                        msg.role === 'user'
+              <div ref={chatRef} className="flex flex-col gap-2.5 p-4 overflow-y-auto"
+                style={{ height: '320px', scrollBehavior: 'smooth' }}>
+                <AnimatePresence>
+                  {messages.map(msg => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      className={`flex ${msg.from === 'client' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                        msg.from === 'client'
+                          ? 'rounded-br-sm'
+                          : 'rounded-bl-sm'
+                      }`}
+                        style={msg.from === 'client'
                           ? {
-                              background: 'linear-gradient(135deg, #0ABAB5 0%, #08a5a0 100%)',
-                              color: '#FFFFFF',
-                              borderBottomRightRadius: '4px',
-                              boxShadow: '0 4px 12px rgba(10,186,181,0.28)',
+                              background: 'rgba(255,255,255,0.08)',
+                              color: 'rgba(240,246,255,0.90)',
+                              border: '1px solid rgba(255,255,255,0.08)',
                             }
                           : {
-                              background: 'rgba(255,255,255,0.80)',
-                              backdropFilter: 'blur(8px)',
-                              WebkitBackdropFilter: 'blur(8px)',
-                              border: '1px solid rgba(255,255,255,0.90)',
-                              color: '#0D1B2A',
-                              borderBottomLeftRadius: '4px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                              background: 'rgba(10,186,181,0.12)',
+                              color: 'rgba(240,246,255,0.90)',
+                              border: '1px solid rgba(10,186,181,0.25)',
                             }
-                      }
+                        }>
+                        {msg.text}
+                      </div>
+                    </motion.div>
+                  ))}
+                  {typing && (
+                    <motion.div
+                      key="typing"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex justify-start"
                     >
-                      {msg.text}
-                    </div>
-                  </motion.div>
-                ))}
-
-                {/* Typing dots */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.6 }}
-                  className="flex justify-start"
-                >
-                  <div
-                    className="px-3.5 py-2.5 rounded-2xl flex items-center gap-1"
-                    style={{
-                      background: 'rgba(255,255,255,0.75)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255,255,255,0.85)',
-                      borderBottomLeftRadius: '4px',
-                    }}
-                  >
-                    {[0, 0.2, 0.4].map((d, i) => (
-                      <span
-                        key={i}
-                        className="w-1.5 h-1.5 rounded-full animate-bounce"
-                        style={{ background: '#0ABAB5', animationDelay: `${d}s`, opacity: 0.7 }}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
+                      <TypingDots />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Input bar */}
-              <div
-                className="relative z-10 px-4 py-3 flex items-center gap-2"
-                style={{ background: 'rgba(243,244,246,0.65)', borderTop: '1px solid rgba(255,255,255,0.60)' }}
-              >
-                <div
-                  className="flex-1 px-4 py-2.5 rounded-full text-xs"
-                  style={{ background: 'rgba(255,255,255,0.80)', color: '#9CA3AF', border: '1px solid rgba(255,255,255,0.90)' }}
-                >
+              {/* Mock input bar */}
+              <div className="px-4 py-3 flex items-center gap-2"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex-1 px-3 py-2 rounded-xl text-sm"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'rgba(240,246,255,0.30)',
+                  }}>
                   Escribe un mensaje...
                 </div>
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: 'linear-gradient(135deg, #0ABAB5 0%, #08a5a0 100%)',
-                    boxShadow: '0 2px 8px rgba(10,186,181,0.35)',
-                  }}
-                >
-                  <ArrowRight className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{ background: '#0ABAB5' }}>
+                  <ArrowRight className="w-4 h-4 text-white" strokeWidth={2} />
                 </div>
               </div>
             </div>
+
+            {/* Floating stat card */}
+            <div className="absolute -bottom-4 -left-4 lg:-left-8 px-4 py-3 rounded-2xl z-20"
+              style={{
+                background: 'rgba(6,10,16,0.90)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              }}>
+              <div className="text-2xl font-black" style={{ color: '#0ABAB5', fontFamily: 'var(--font-display)' }}>94%</div>
+              <div className="text-xs" style={{ color: 'rgba(240,246,255,0.50)' }}>conversaciones resueltas</div>
+            </div>
           </motion.div>
+
         </div>
       </div>
     </section>

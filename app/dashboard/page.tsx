@@ -19,6 +19,7 @@ export default async function DashboardPage() {
         kpis={DEMO_KPIS}
         plan={DEMO_NEGOCIO.plan}
         usoPorcentaje={Math.round((DEMO_NEGOCIO.current_usage / DEMO_NEGOCIO.usage_limit) * 100)}
+        userId={auth.userId}
         isDemo
       />
     )
@@ -30,6 +31,8 @@ export default async function DashboardPage() {
     <DashboardClient
       kpis={kpis}
       plan={auth.business.plan}
+      businessName={auth.business.nombre}
+      userId={auth.userId}
       usoPorcentaje={
         auth.business.usage_limit
           ? Math.round((auth.business.current_usage / auth.business.usage_limit) * 100)

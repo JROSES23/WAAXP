@@ -1,109 +1,132 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { motion, useInView, useMotionValue, useSpring } from 'framer-motion'
 
-const CUSTOM_EASE = [0.25, 0.46, 0.45, 0.94] as const
+const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
-const stats = [
-  {
-    number: '73%',
-    label: 'de los clientes no espera más de 5 minutos antes de irse con la competencia',
-  },
-  {
-    number: '$2.1M',
-    label: 'CLP pierden en promedio las PYMEs chilenas por mes en ventas no atendidas',
-  },
-  {
-    number: '1 de 3',
-    label: 'clientes potenciales jamás recibe respuesta al primer mensaje',
-  },
+function NumberTicker({ value, prefix = '', suffix = '' }: { value: number; prefix?: string; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const motionValue = useMotionValue(0)
+  const springValue = useSpring(motionValue, { damping: 60, stiffness: 100 })
+  const isInView = useInView(ref, { once: true, margin: '0px' })
+
+  useEffect(() => {
+    if (isInView) motionValue.set(value)
+  }, [isInView, motionValue, value])
+
+  useEffect(() =>
+    springValue.on('change', latest => {
+      if (ref.current) {
+        ref.current.textContent = prefix + Intl.NumberFormat('es-CL').format(Math.round(latest)) + suffix
+      }
+    }),
+  [springValue, prefix, suffix])
+
+  return <span ref={ref}>{prefix}0{suffix}</span>
+}
+
+const STATS = [
+  { value: 340, suffix: '+', label: 'negocios activos' },
+  { value: 94, suffix: '%', label: 'automatización promedio' },
+  { value: 3, prefix: '<', suffix: 's', label: 'tiempo de respuesta' },
+  { value: 2, suffix: 'M+', label: 'mensajes procesados' },
+]
+
+const TYPES = [
+  'Tiendas de ropa', 'Clínicas dentales', 'Distribuidoras', 'Restaurantes',
+  'Centros de estética', 'Inmobiliarias', 'Talleres mecánicos', 'Farmacias',
+  'Peluquerías', 'Academias', 'Ferreterías', 'Clínicas veterinarias',
 ]
 
 export default function ProblemSection() {
   return (
-    <section
-      id="problema"
-      className="relative overflow-hidden"
-      style={{
-        background: '#0D1B2A',
-        fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif',
-      }}
-    >
-      {/* Subtle radial glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(10,186,181,0.06) 0%, transparent 60%)',
-        }}
-      />
+    <section className="relative py-24 overflow-hidden"
+      style={{ background: '#060a10', fontFamily: 'var(--font-ui), DM Sans, system-ui, sans-serif' }}>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-        {/* Headline */}
+      {/* Separator line at top */}
+      <div className="absolute top-0 left-0 right-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(10,186,181,0.3), transparent)' }} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Problem statement */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, ease: CUSTOM_EASE }}
-          className="text-center mb-16"
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: EASE }}
+          className="text-center mb-16 max-w-3xl mx-auto"
         >
-          <p
-            className="text-xs font-semibold uppercase tracking-widest mb-4"
-            style={{ color: '#0ABAB5' }}
-          >
-            La realidad
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#0ABAB5' }}>
+            El problema
           </p>
-          <h2
-            className="font-display font-black leading-tight"
+          <h2 className="font-display font-black leading-[1.05] mb-5"
             style={{
-              fontSize: 'clamp(1.8rem, 3.5vw, 3rem)',
-              color: '#FFFFFF',
+              fontSize: 'clamp(2rem, 4.5vw, 3.5rem)',
+              color: '#F0F6FF',
               fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            El problema que nadie quiere ver
+              letterSpacing: '-0.03em',
+            }}>
+            Pierdes ventas mientras duermes. Nosotros lo resolvemos.
           </h2>
+          <p style={{ color: 'rgba(240,246,255,0.50)', lineHeight: 1.7 }}>
+            El 78% de los clientes espera respuesta en menos de 5 minutos. La mayoría de las PyMEs no pueden cumplirlo.
+          </p>
         </motion.div>
 
         {/* Stats grid */}
-        <div className="grid md:grid-cols-3 gap-8">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
+          {STATS.map((s, i) => (
+            <motion.div key={s.label}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: i * 0.12, ease: CUSTOM_EASE }}
-              className="text-center px-4"
-            >
-              <div
-                className="font-display font-black leading-none mb-4"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: EASE }}
+              className="rounded-2xl p-6 text-center relative overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+              }}>
+              {/* glow */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(10,186,181,0.07) 0%, transparent 70%)' }} />
+              <div className="relative font-display font-black text-4xl tracking-tight mb-1"
                 style={{
-                  fontSize: 'clamp(3rem, 6vw, 5.5rem)',
                   color: '#0ABAB5',
                   fontFamily: 'var(--font-display), Bricolage Grotesque, system-ui, sans-serif',
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                {stat.number}
+                }}>
+                <NumberTicker value={s.value} prefix={s.prefix} suffix={s.suffix} />
               </div>
-              <p
-                className="text-base leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.65)' }}
-              >
-                {stat.label}
-              </p>
+              <div className="text-xs" style={{ color: 'rgba(240,246,255,0.45)' }}>{s.label}</div>
             </motion.div>
           ))}
         </div>
-      </div>
 
-      {/* Teal horizontal rule */}
-      <div
-        className="w-full h-px"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(10,186,181,0.40), transparent)' }}
-      />
+        {/* Marquee */}
+        <div className="overflow-hidden [--gap:1.5rem] [--duration:35s]">
+          <p className="text-xs font-medium uppercase tracking-widest text-center mb-5"
+            style={{ color: 'rgba(240,246,255,0.25)' }}>
+            Funciona para todo tipo de negocio
+          </p>
+          <div className="group flex overflow-hidden [gap:var(--gap)]">
+            {[1, 2, 3, 4].map(n => (
+              <div key={n} className="flex shrink-0 [gap:var(--gap)] animate-marquee group-hover:[animation-play-state:paused]">
+                {TYPES.map(t => (
+                  <div key={t} className="shrink-0 px-4 py-2 rounded-full text-sm font-medium"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      color: 'rgba(240,246,255,0.45)',
+                    }}>
+                    {t}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

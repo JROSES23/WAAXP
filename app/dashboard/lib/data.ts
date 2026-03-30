@@ -8,9 +8,13 @@ import type {
   Pedido,
   PlantillaRespuesta,
   Producto,
+  Reserva,
+  RecursoReserva,
   Sale,
   Staff,
   TipoProducto,
+  EstadoReserva,
+  MetodoPago,
 } from '@/app/dashboard/types'
 
 // ─── Business ───
@@ -265,6 +269,146 @@ export async function obtenerKPIs(idNegocio: string) {
     chatsIA: mensajesBot,
     chatsHumano: mensajesTotal - mensajesBot,
   }
+}
+
+// ─── Recursos de Reserva ───
+
+export async function obtenerRecursosPorNegocio(
+  idNegocio: string
+): Promise<RecursoReserva[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('resources')
+    .select('*')
+    .eq('business_id', idNegocio)
+    .eq('activo', true)
+    .order('orden', { ascending: true })
+
+  if (error) throw error
+  return (data ?? []) as RecursoReserva[]
+}
+
+export async function crearRecurso(
+  recurso: Omit<RecursoReserva, 'id' | 'created_at' | 'reservas_count'>
+): Promise<RecursoReserva> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('resources')
+    .insert(recurso)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as RecursoReserva
+}
+
+export async function actualizarRecurso(
+  id: string,
+  campos: Partial<Pick<RecursoReserva, 'nombre' | 'tipo' | 'icono' | 'color' | 'activo' | 'orden'>>
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('resources')
+    .update(campos)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// ─── Reservas ───
+
+export async function obtenerReservasPorNegocio(
+  idNegocio: string,
+  filtros?: {
+    recursoId?: string
+    estado?: EstadoReserva
+    desde?: string   // ISO date
+    hasta?: string   // ISO date
+  }
+): Promise<Reserva[]> {
+  const supabase = await createClient()
+  let consulta = supabase
+    .from('reservas')
+    .select('*, recurso:resources(*)')
+    .eq('business_id', idNegocio)
+
+  if (filtros?.recursoId) consulta = consulta.eq('recurso_id', filtros.recursoId)
+  if (filtros?.estado)    consulta = consulta.eq('estado', filtros.estado)
+  if (filtros?.desde)     consulta = consulta.gte('inicio', filtros.desde)
+  if (filtros?.hasta)     consulta = consulta.lte('inicio', filtros.hasta)
+
+  const { data, error } = await consulta.order('inicio', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as Reserva[]
+}
+
+export async function obtenerReservasDelDia(
+  idNegocio: string,
+  fecha?: string // ISO date, por defecto hoy
+): Promise<Reserva[]> {
+  const dia = fecha ?? new Date().toISOString().split('T')[0]
+  const desde = `${dia}T00:00:00.000Z`
+  const hasta  = `${dia}T23:59:59.999Z`
+
+  return obtenerReservasPorNegocio(idNegocio, { desde, hasta })
+}
+
+export async function actualizarReserva(
+  id: string,
+  campos: Partial<Pick<
+    Reserva,
+    'estado' | 'metodo_pago' | 'estado_pago' | 'monto' | 'monto_anticipo' | 'notas'
+  >>
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('reservas')
+    .update(campos)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function crearReserva(
+  reserva: Omit<Reserva, 'id' | 'created_at' | 'recurso'>
+): Promise<Reserva> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('reservas')
+    .insert(reserva)
+    .select('*, recurso:resources(*)')
+    .single()
+
+  if (error) throw error
+  return data as Reserva
+}
+
+/** Conteo de reservas por recurso (para vista calor) */
+export async function obtenerConteoReservasPorRecurso(
+  idNegocio: string,
+  desde: string,
+  hasta: string
+): Promise<{ recurso_id: string; count: number }[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('reservas')
+    .select('recurso_id')
+    .eq('business_id', idNegocio)
+    .gte('inicio', desde)
+    .lte('inicio', hasta)
+    .not('estado', 'eq', 'cancelada')
+
+  if (error) throw error
+
+  // Agrupar por recurso_id en memoria
+  const conteos: Record<string, number> = {}
+  for (const row of data ?? []) {
+    if (row.recurso_id) {
+      conteos[row.recurso_id] = (conteos[row.recurso_id] ?? 0) + 1
+    }
+  }
+
+  return Object.entries(conteos).map(([recurso_id, count]) => ({ recurso_id, count }))
 }
 
 // ─── Support Tickets ───

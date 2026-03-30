@@ -62,16 +62,20 @@ module.exports = {
         accent:  'var(--accent-glow)',
       },
       animation: {
-        'fade-up':    'fade-up 0.5s cubic-bezier(0.25,0.46,0.45,0.94) both',
-        'fade-in':    'fade-in 0.3s ease-out both',
-        'slide-in':   'slide-left 0.25s ease-out both',
-        'scale-in':   'scale-in 0.2s ease-out both',
-        'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
-        shimmer:      'shimmer 1.5s linear infinite',
-        float:        'float 4s ease-in-out infinite',
-        'pulse-ring': 'pulse-ring 2s ease-out infinite',
-        'spin-slow':  'spin-slow 3s linear infinite',
-        'dot-bounce': 'dot-bounce 1.4s ease-in-out infinite',
+        'fade-up':      'fade-up 0.5s cubic-bezier(0.25,0.46,0.45,0.94) both',
+        'fade-in':      'fade-in 0.3s ease-out both',
+        'slide-in':     'slide-left 0.25s ease-out both',
+        'scale-in':     'scale-in 0.2s ease-out both',
+        'glow-pulse':   'glow-pulse 3s ease-in-out infinite',
+        shimmer:        'shimmer 1.5s linear infinite',
+        float:          'float 4s ease-in-out infinite',
+        'pulse-ring':   'pulse-ring 2s ease-out infinite',
+        'spin-slow':    'spin-slow 3s linear infinite',
+        'dot-bounce':   'dot-bounce 1.4s ease-in-out infinite',
+        'shimmer-slide': 'shimmer-slide var(--speed, 3s) ease-in-out infinite alternate',
+        'spin-around':  'spin-around calc(var(--speed, 3s) * 2) infinite linear',
+        marquee:        'marquee var(--duration, 40s) linear infinite',
+        gradient:       'gradient 8s linear infinite',
       },
       keyframes: {
         'glow-pulse': {
@@ -114,6 +118,22 @@ module.exports = {
         'dot-bounce': {
           '0%, 80%, 100%': { transform: 'translateY(0)',   opacity: '0.4' },
           '40%':            { transform: 'translateY(-6px)', opacity: '1'  },
+        },
+        'shimmer-slide': {
+          to: { transform: 'translate(calc(100cqw - 100%), 0)' },
+        },
+        'spin-around': {
+          '0%':        { transform: 'translateZ(0) rotate(0)'      },
+          '15%, 35%':  { transform: 'translateZ(0) rotate(90deg)'  },
+          '65%, 85%':  { transform: 'translateZ(0) rotate(270deg)' },
+          '100%':      { transform: 'translateZ(0) rotate(360deg)' },
+        },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to:   { transform: 'translateX(calc(-100% - var(--gap)))' },
+        },
+        gradient: {
+          to: { backgroundPosition: 'var(--bg-size) 0' },
         },
       },
     },

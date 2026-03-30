@@ -1,11 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Categoria, Negocio, Producto, TipoProducto } from '@/app/dashboard/types'
-import { Briefcase, Calendar, ImagePlus, Package, Pencil, Plus, Trash2, X, AlertTriangle } from 'lucide-react'
+import { useModalStore } from '@/lib/modal-store'
+import {
+  Briefcase, Calendar, ImagePlus, Package, Pencil, Plus, Trash2, X, AlertTriangle,
+  ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search,
+  Bot, FileUp, Trophy,
+} from 'lucide-react'
 
 interface ProductosClientProps {
   negocio:             Negocio
@@ -14,11 +19,22 @@ interface ProductosClientProps {
 }
 
 type FiltroTipo = 'todos' | TipoProducto
+type SortKey = 'nombre' | 'tipo' | 'precio' | 'stock' | 'categoria'
+type SortDir = 'asc' | 'desc' | null
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50]
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
+  if (sortKey !== col) return <ChevronsUpDown className="w-3.5 h-3.5 opacity-30" strokeWidth={2} />
+  if (sortDir === 'asc')  return <ChevronUp   className="w-3.5 h-3.5" strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
+  return <ChevronDown className="w-3.5 h-3.5" strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
+}
 
 type FormularioProducto = {
   id?:                   string
   nombre:                string
   descripcion:           string
+  faq:                   string
   tipo:                  TipoProducto
   precio:                number
   moneda:                string
@@ -48,29 +64,82 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
   const [categorias,         setCategorias]         = useState<Categoria[]>(categoriasIniciales)
   const [filtroTipo,         setFiltroTipo]         = useState<FiltroTipo>('todos')
   const [filtroCategoria,    setFiltroCategoria]    = useState<string>('todas')
+  const [busqueda,           setBusqueda]           = useState('')
+  const [sortKey,            setSortKey]            = useState<SortKey | null>(null)
+  const [sortDir,            setSortDir]            = useState<SortDir>(null)
+  const [page,               setPage]               = useState(1)
+  const [pageSize,           setPageSize]           = useState(10)
   const [modalProducto,      setModalProducto]      = useState(false)
   const [modalCategoria,     setModalCategoria]     = useState(false)
+  const [modalBotPreview,    setModalBotPreview]    = useState(false)
+  const [botPreviewProducto, setBotPreviewProducto] = useState<Producto | null>(null)
+  const [botPreviewReply,    setBotPreviewReply]    = useState('')
+  const [botPreviewLoading,  setBotPreviewLoading]  = useState(false)
+  const csvInputRef = useRef<HTMLInputElement>(null)
   const [nombreCategoriaNueva, setNombreCategoriaNueva] = useState('')
   const [archivosSeleccionados, setArchivosSeleccionados] = useState<File[]>([])
   const [cargando,           setCargando]           = useState(false)
   const [errorFormulario,    setErrorFormulario]    = useState<string | null>(null)
 
   const formularioInicial: FormularioProducto = {
-    nombre: '', descripcion: '', tipo: 'producto', precio: 0, moneda: 'CLP',
+    nombre: '', descripcion: '', faq: '', tipo: 'producto', precio: 0, moneda: 'CLP',
     categoria_id: null, imagenes: [], stock: 0, stock_alert_threshold: 0,
     duracion_minutos: null, capacidad: null, activo: true,
   }
 
   const [formulario, setFormulario] = useState<FormularioProducto>(formularioInicial)
 
+  // Notifica al store global cuando cualquier overlay está activo
+  const { openModal, closeModal } = useModalStore()
+  const anyModalOpen = modalProducto || modalCategoria || modalBotPreview
+  useEffect(() => {
+    if (anyModalOpen) {
+      openModal()
+      return () => closeModal()
+    }
+  }, [anyModalOpen, openModal, closeModal])
+
   const categoriasPorId = useMemo(() =>
     categorias.reduce<Record<string, Categoria>>((acc, c) => { acc[c.id] = c; return acc }, {}),
   [categorias])
 
-  const productosFiltrados = productos.filter((p) =>
-    (filtroTipo === 'todos' || p.tipo === filtroTipo) &&
-    (filtroCategoria === 'todas' || p.categoria_id === filtroCategoria)
-  )
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDir === 'asc')       setSortDir('desc')
+      else { setSortKey(null); setSortDir(null) }
+    } else { setSortKey(key); setSortDir('asc') }
+    setPage(1)
+  }
+
+  const productosFiltrados = useMemo(() => {
+    let rows = productos.filter((p) => {
+      const q = busqueda.toLowerCase()
+      return (
+        (filtroTipo === 'todos' || p.tipo === filtroTipo) &&
+        (filtroCategoria === 'todas' || p.categoria_id === filtroCategoria) &&
+        (!q || p.nombre.toLowerCase().includes(q) || (p.descripcion ?? '').toLowerCase().includes(q))
+      )
+    })
+    if (sortKey && sortDir) {
+      rows = [...rows].sort((a, b) => {
+        let va: string | number, vb: string | number
+        switch (sortKey) {
+          case 'nombre':    va = a.nombre.toLowerCase();                                       vb = b.nombre.toLowerCase();                                       break
+          case 'tipo':      va = a.tipo;                                                       vb = b.tipo;                                                       break
+          case 'precio':    va = a.precio;                                                     vb = b.precio;                                                     break
+          case 'stock':     va = a.stock ?? -1;                                                vb = b.stock ?? -1;                                                break
+          case 'categoria': va = (a.categoria_id && categoriasPorId[a.categoria_id]?.nombre) ?? ''; vb = (b.categoria_id && categoriasPorId[b.categoria_id]?.nombre) ?? ''; break
+          default: va = ''; vb = ''
+        }
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0
+        return sortDir === 'asc' ? cmp : -cmp
+      })
+    }
+    return rows
+  }, [productos, filtroTipo, filtroCategoria, busqueda, sortKey, sortDir, categoriasPorId])
+
+  const totalPages = Math.max(1, Math.ceil(productosFiltrados.length / pageSize))
+  const productosPaginados = productosFiltrados.slice((page - 1) * pageSize, page * pageSize)
 
   const totalActivos        = productos.filter((p) => p.activo).length
   const productosStockBajo  = productos.filter((p) =>
@@ -81,7 +150,7 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
   const abrirModalNuevo = () => { setFormulario({ ...formularioInicial }); setArchivosSeleccionados([]); setErrorFormulario(null); setModalProducto(true) }
   const abrirModalEditar = (p: Producto) => {
     setFormulario({
-      id: p.id, nombre: p.nombre, descripcion: p.descripcion ?? '', tipo: p.tipo, precio: p.precio,
+      id: p.id, nombre: p.nombre, descripcion: p.descripcion ?? '', faq: p.faq ?? '', tipo: p.tipo, precio: p.precio,
       moneda: p.moneda, categoria_id: p.categoria_id ?? null, imagenes: p.imagenes ?? [],
       stock: p.stock ?? null, stock_alert_threshold: p.stock_alert_threshold ?? null,
       duracion_minutos: p.duracion_minutos ?? null, capacidad: p.capacidad ?? null, activo: p.activo,
@@ -148,6 +217,7 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
 
     const datosBase = {
       business_id: negocio.id, nombre: formulario.nombre.trim(), descripcion: formulario.descripcion.trim() || null,
+      faq: formulario.faq.trim() || null,
       tipo: formulario.tipo, precio: formulario.precio, moneda: formulario.moneda,
       categoria_id: formulario.categoria_id, imagenes: formulario.imagenes,
       stock: formulario.tipo === 'producto' ? formulario.stock : null,
@@ -192,6 +262,70 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
     setCargando(false)
   }
 
+  // Top 3 productos por consultas
+  const topConsultadosIds = useMemo(() => {
+    return [...productos]
+      .filter((p) => (p.consult_count ?? 0) > 0)
+      .sort((a, b) => (b.consult_count ?? 0) - (a.consult_count ?? 0))
+      .slice(0, 3)
+      .map((p) => p.id)
+  }, [productos])
+
+  // Bot preview
+  const verBotPreview = async (producto: Producto) => {
+    setBotPreviewProducto(producto)
+    setBotPreviewReply('')
+    setBotPreviewLoading(true)
+    setModalBotPreview(true)
+    try {
+      const systemPrompt = `Eres el asistente de ventas de ${negocio.nombre}. Te preguntan por el siguiente producto:\n\nNombre: ${producto.nombre}\nTipo: ${producto.tipo}\nPrecio: $${producto.precio.toLocaleString()} ${producto.moneda}\nDescripción: ${producto.descripcion || 'Sin descripción'}\n${producto.faq ? `FAQ: ${producto.faq}` : ''}`
+      const res = await fetch('/api/bot/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `¿Cuánto cuesta ${producto.nombre} y qué incluye?`, prompt: systemPrompt }),
+      })
+      const json = await res.json()
+      setBotPreviewReply(json.reply ?? 'Sin respuesta.')
+    } catch {
+      setBotPreviewReply('No se pudo conectar con el bot.')
+    } finally {
+      setBotPreviewLoading(false)
+    }
+  }
+
+  // CSV import
+  const importarCSV = async (file: File) => {
+    const text = await file.text()
+    const lines = text.split('\n').filter((l) => l.trim())
+    if (lines.length < 2) { toast.error('El CSV no tiene datos.'); return }
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/"/g, ''))
+    const rows = lines.slice(1)
+    const productos_nuevos: object[] = []
+    for (const row of rows) {
+      const vals = row.split(',').map((v) => v.trim().replace(/^"|"$/g, ''))
+      const get = (key: string) => vals[headers.indexOf(key)] ?? ''
+      const nombre = get('nombre')
+      if (!nombre) continue
+      productos_nuevos.push({
+        business_id: negocio.id,
+        nombre,
+        descripcion: get('descripcion') || null,
+        tipo: (['producto', 'servicio', 'reserva'].includes(get('tipo')) ? get('tipo') : 'producto') as 'producto' | 'servicio' | 'reserva',
+        precio: Number(get('precio')) || 0,
+        moneda: get('moneda') || 'CLP',
+        stock: get('stock') ? Number(get('stock')) : null,
+        imagenes: [],
+        activo: true,
+        faq: get('faq') || null,
+      })
+    }
+    if (productos_nuevos.length === 0) { toast.error('No se encontraron productos válidos.'); return }
+    const { data, error } = await supabase.from('products').insert(productos_nuevos).select('*, categories(nombre)')
+    if (error) { toast.error('Error al importar: ' + error.message); return }
+    setProductos((p) => [...(data as Producto[]), ...p])
+    toast.success(`${productos_nuevos.length} producto(s) importados correctamente`)
+  }
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div>
@@ -216,25 +350,41 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
       </div>
 
       {/* Filtros + acción */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.75} />
+            <input type="text" placeholder="Buscar por nombre o descripción..." value={busqueda}
+              onChange={(e) => { setBusqueda(e.target.value); setPage(1) }} className="input-glass pl-9" />
+          </div>
+          <button onClick={() => csvInputRef.current?.click()}
+            className="px-4 py-2.5 text-sm font-medium rounded-xl flex items-center gap-2 shrink-0 transition-colors"
+            style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+            onMouseLeave={e => (e.currentTarget.style.background = '')}>
+            <FileUp className="w-4 h-4" strokeWidth={1.75} /> Importar CSV
+          </button>
+          <input ref={csvInputRef} type="file" accept=".csv" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) importarCSV(f); e.target.value = '' }} />
+          <button onClick={abrirModalNuevo}
+            className="btn-accent px-4 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-2 shrink-0">
+            <Plus className="w-4 h-4" strokeWidth={2} /> Nuevo producto
+          </button>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
+          <select value={filtroTipo} onChange={(e) => { setFiltroTipo(e.target.value as FiltroTipo); setPage(1) }}
             className="input-glass cursor-pointer">
             <option value="todos">Todos los tipos</option>
             <option value="producto">Productos</option>
             <option value="servicio">Servicios</option>
             <option value="reserva">Reservas</option>
           </select>
-          <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
+          <select value={filtroCategoria} onChange={(e) => { setFiltroCategoria(e.target.value); setPage(1) }}
             className="input-glass cursor-pointer">
             <option value="todas">Todas las categorías</option>
             {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
         </div>
-        <button onClick={abrirModalNuevo}
-          className="btn-accent px-4 py-2.5 text-sm font-semibold rounded-xl flex items-center gap-2">
-          <Plus className="w-4 h-4" strokeWidth={2} /> Nuevo producto
-        </button>
       </div>
 
       {/* Categorías */}
@@ -265,20 +415,39 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' }}>
-                {['Foto', 'Nombre', 'Tipo', 'Precio', 'Stock', 'Categoría', 'Acciones'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: 'var(--text-tertiary)' }}>{h}</th>
+                <th className="px-5 py-3.5 text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Foto</span>
+                </th>
+                {([
+                  { key: 'nombre'    as SortKey, label: 'Nombre'    },
+                  { key: 'tipo'      as SortKey, label: 'Tipo'      },
+                  { key: 'precio'    as SortKey, label: 'Precio'    },
+                  { key: 'stock'     as SortKey, label: 'Stock'     },
+                  { key: 'categoria' as SortKey, label: 'Categoría' },
+                ]).map((col) => (
+                  <th key={col.key} className="px-5 py-3.5 text-left cursor-pointer select-none" onClick={() => handleSort(col.key)}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider transition-colors"
+                        style={{ color: sortKey === col.key ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                        {col.label}
+                      </span>
+                      <SortIcon col={col.key} sortKey={sortKey} sortDir={sortDir} />
+                    </div>
+                  </th>
                 ))}
+                <th className="px-5 py-3.5 text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {productosFiltrados.length === 0 ? (
+              {productosPaginados.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
                     No hay productos para los filtros seleccionados.
                   </td>
                 </tr>
-              ) : productosFiltrados.map((producto) => {
+              ) : productosPaginados.map((producto) => {
                 const stockBajo = producto.tipo === 'producto' &&
                   typeof producto.stock === 'number' && typeof producto.stock_alert_threshold === 'number' &&
                   producto.stock <= producto.stock_alert_threshold
@@ -299,7 +468,16 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{producto.nombre}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{producto.nombre}</p>
+                        {topConsultadosIds.includes(producto.id) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                            style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }}>
+                            <Trophy className="w-2.5 h-2.5" strokeWidth={2.5} />
+                            Top {topConsultadosIds.indexOf(producto.id) + 1}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{producto.descripcion || 'Sin descripción'}</p>
                     </td>
                     <td className="px-5 py-3.5">
@@ -335,7 +513,14 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
                         : 'Sin categoría'}
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={() => verBotPreview(producto)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                          style={{ border: '1px solid var(--accent-border)', color: 'var(--accent)', background: 'var(--accent-dim)' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                          <Bot className="h-3 w-3" strokeWidth={1.75} /> Bot
+                        </button>
                         <button onClick={() => abrirModalEditar(producto)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
                           style={{ border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
@@ -357,6 +542,66 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination footer */}
+        <div className="px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3"
+          style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Mostrando{' '}
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {productosFiltrados.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, productosFiltrados.length)}
+              </span>{' '}
+              de{' '}
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{productosFiltrados.length}</span>
+            </span>
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+              className="text-xs px-2 py-1 rounded-lg cursor-pointer outline-none"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n} / pág.</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <button disabled={page === 1} onClick={() => setPage(page - 1)}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--bg-surface)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}>
+              <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((p, i) =>
+                p === '...'
+                  ? <span key={`e${i}`} className="px-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>…</span>
+                  : (
+                    <button key={p} onClick={() => setPage(p as number)}
+                      className="w-7 h-7 rounded-lg text-xs font-medium transition-all"
+                      style={{
+                        background: page === p ? 'var(--accent)' : 'transparent',
+                        color: page === p ? '#fff' : 'var(--text-secondary)',
+                        fontWeight: page === p ? 700 : 400,
+                      }}
+                      onMouseEnter={e => page !== p && (e.currentTarget.style.background = 'var(--bg-surface)')}
+                      onMouseLeave={e => page !== p && (e.currentTarget.style.background = 'transparent')}>
+                      {p}
+                    </button>
+                  )
+              )}
+            <button disabled={page === totalPages} onClick={() => setPage(page + 1)}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = 'var(--bg-surface)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}>
+              <ChevronRight className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -399,6 +644,11 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
                   <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Descripción</label>
                   <textarea value={formulario.descripcion} onChange={(e) => setFormulario((f) => ({ ...f, descripcion: e.target.value }))}
                     rows={3} placeholder="Descripción del producto..." className="input-glass resize-none" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>FAQ del producto <span className="font-normal opacity-60">(contexto para el bot)</span></label>
+                  <textarea value={formulario.faq} onChange={(e) => setFormulario((f) => ({ ...f, faq: e.target.value }))}
+                    rows={3} placeholder="P: ¿Tiene garantía?\nR: Sí, 6 meses por defectos de fábrica." className="input-glass resize-none" />
                 </div>
                 <div>
                   <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tipo de ítem</label>
@@ -474,6 +724,57 @@ export default function ProductosClient({ negocio, productosIniciales, categoria
                   {cargando ? 'Guardando…' : 'Guardar'}
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal bot preview */}
+      <AnimatePresence>
+        {modalBotPreview && botPreviewProducto && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={modalOverlay}
+            onClick={() => setModalBotPreview(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md p-6 space-y-4"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '20px' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-dim)' }}>
+                    <Bot className="w-4 h-4" style={{ color: 'var(--accent)' }} strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Cotización del bot</p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{botPreviewProducto.nombre}</p>
+                  </div>
+                </div>
+                <button onClick={() => setModalBotPreview(false)} className="p-2 rounded-xl transition-colors"
+                  style={{ color: 'var(--text-tertiary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                  <X className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              </div>
+              <div className="p-3 rounded-xl text-xs" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Pregunta simulada:</span>{' '}
+                ¿Cuánto cuesta {botPreviewProducto.nombre} y qué incluye?
+              </div>
+              <div className="min-h-[80px] p-4 rounded-xl" style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
+                {botPreviewLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent)' }} />
+                    <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: '0.15s' }} />
+                    <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: '0.3s' }} />
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{botPreviewReply}</p>
+                )}
+              </div>
+              <p className="text-[10px] text-center" style={{ color: 'var(--text-tertiary)' }}>
+                Esta es una vista previa de cómo el bot respondería sobre este producto.
+              </p>
             </motion.div>
           </motion.div>
         )}

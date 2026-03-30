@@ -1,4 +1,5 @@
 export type TipoProducto = 'producto' | 'servicio' | 'reserva'
+export type ModoPrincipal = 'reservas' | 'productos' | 'hibrido'
 export type VerticalNegocio =
   | 'retail'
   | 'salon'
@@ -17,6 +18,7 @@ export interface Negocio {
   nombre: string
   vertical_principal: VerticalNegocio
   modos_activos: string[]
+  modo_principal?: ModoPrincipal
   whatsapp_phone?: string
   whatsapp_token?: string
   plan: string
@@ -56,6 +58,8 @@ export interface Producto {
   duracion_minutos?: number
   capacidad?: number
   activo: boolean
+  faq?: string
+  consult_count?: number
   created_at: string
   updated_at: string
   categories?: { nombre: string }
@@ -156,6 +160,7 @@ export type SectionPermission =
   | 'configuracion_ia'
   | 'whatsapp_qr'
   | 'billing'
+  | 'reservas'
 
 export interface UserRoleRecord {
   id: string
@@ -240,6 +245,64 @@ export interface PlanConfig {
   updated_at: string
 }
 
+// ============================================================
+// RESERVAS — Recursos y citas con pago
+// ============================================================
+
+export type TipoRecurso = 'silla' | 'mesa' | 'profesional' | 'cabina' | 'sala' | 'custom'
+
+export interface RecursoReserva {
+  id: string
+  business_id: string
+  nombre: string          // "Silla 1", "Mesa VIP", "Pedro Ramírez"
+  tipo: TipoRecurso
+  icono?: string          // nombre de icono lucide
+  color?: string          // color de acento del recurso
+  activo: boolean
+  orden: number
+  reservas_count?: number // campo computado para vista calor
+  created_at: string
+}
+
+export type MetodoPago =
+  | 'efectivo'
+  | 'transferencia'
+  | 'tarjeta'
+  | 'pagado_wsp'  // anticipo cobrado por el bot via pasarela
+  | 'pendiente'
+
+export type EstadoPago = 'pendiente' | 'anticipo' | 'pagado' | 'gratis'
+
+export type EstadoReserva =
+  | 'programada'
+  | 'confirmada'
+  | 'en_curso'
+  | 'completada'
+  | 'cancelada'
+  | 'no_asiste'
+
+export interface Reserva {
+  id: string
+  business_id: string
+  recurso_id: string
+  cliente_nombre: string
+  cliente_phone?: string
+  servicio?: string           // "Corte + barba", "Manicure"
+  inicio: string              // ISO datetime
+  fin: string                 // ISO datetime
+  estado: EstadoReserva
+  metodo_pago: MetodoPago
+  estado_pago: EstadoPago
+  monto: number               // en pesos CLP
+  monto_anticipo: number      // anticipo cobrado
+  notas?: string
+  es_walk_in: boolean
+  created_at: string
+  // relaciones opcionales (join)
+  recurso?: RecursoReserva
+}
+
+// ============================================================
 // Computed auth context passed through the app
 export interface AuthContext {
   userId: string

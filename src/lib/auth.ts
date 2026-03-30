@@ -1,3 +1,24 @@
+/**
+ * ARQUITECTURA AUTH — LEER ANTES DE MODIFICAR
+ * ============================================
+ * Este archivo corre en Server Components DESPUÉS del middleware.
+ *
+ * REGLA 1: Usar getSession(), NO getUser() en este contexto.
+ *   - getUser() hace una llamada de red a Supabase Auth.
+ *   - Si el access token expiró, intenta usar el refresh token.
+ *   - El middleware YA consumió ese refresh token en el mismo ciclo de request.
+ *   - Resultado: error `refresh_token_already_used` → getSession() también falla → null → redirect a /login.
+ *
+ * REGLA 2: El middleware es la única fuente de verdad para validación de tokens.
+ *   - Si llegamos aquí, el middleware ya validó/refrescó la sesión con el servidor.
+ *   - getSession() lee el JWT local sin red — es seguro y correcto en este contexto.
+ *
+ * REGLA 3: No llamar getUser() aquí ni en ningún otro Server Component del dashboard.
+ *
+ * Ver: https://supabase.com/docs/guides/auth/server-side/nextjs
+ */
+
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import type {
   AuthContext,
@@ -17,39 +38,28 @@ const ALL_PERMISSIONS: SectionPermission[] = [
   'configuracion_ia',
   'whatsapp_qr',
   'billing',
+  'reservas',
 ]
 
 /**
  * Get complete auth context for the current user.
  * Returns null ONLY when there is no authenticated session.
  * DB errors are caught and fall back to safe defaults.
+ *
+ * Wrapped with React.cache() so multiple Server Components in the same
+ * render tree (e.g. layout + page) share a single call.
+ *
+ * Uses getSession() (local JWT read) instead of getUser() (network call)
+ * to avoid competing with the middleware's token refresh on the same request.
  */
-export async function getAuthContext(): Promise<AuthContext | null> {
+export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   try {
     const supabase = await createClient()
 
-    const {
-      data: { user: userFromServer },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    let user = userFromServer
-
-    if (authError) {
-      // Concurrent token refresh race — another request already used the refresh token.
-      // The user IS authenticated; fall back to reading the session from cookies
-      // (no server round-trip, but safe since the race winner already validated).
-      const isRefreshRace =
-        authError.message?.toLowerCase().includes('refresh_token_already_used') ||
-        (authError as { code?: string }).code === 'refresh_token_already_used'
-
-      if (isRefreshRace) {
-        const { data: sessionData } = await supabase.auth.getSession()
-        user = sessionData?.session?.user ?? null
-      } else {
-        return null
-      }
-    }
+    // Read the session from cookies — no network call.
+    // The middleware already validated and refreshed the token if needed.
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
 
     if (!user) return null
 
@@ -138,7 +148,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     console.error('[getAuthContext] unexpected error:', err)
     return null
   }
-}
+})
 
 export function hasPermission(
   auth: AuthContext,

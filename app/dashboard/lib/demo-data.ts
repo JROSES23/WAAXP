@@ -7,6 +7,7 @@
 import type {
   Negocio, Producto, Categoria, Staff, Conversacion,
   Sale, PlantillaRespuesta, SupportTicket,
+  RecursoReserva, Reserva,
 } from '@/app/dashboard/types'
 
 export const DEMO_BUSINESS_ID = 'demo-waaxp'
@@ -136,6 +137,70 @@ export const DEMO_PLANTILLAS: PlantillaRespuesta[] = [
   { id: 'pt2', business_id: DEMO_BUSINESS_ID, trigger_keywords: ['despacho', 'envío', 'delivery'], mensaje_template: 'Hacemos envíos a todo Chile. Despacho gratis sobre $50.000. Llega en 3-5 días hábiles.', category: 'logística', usage_count: 28, created_at: '2025-02-05T00:00:00Z' },
   { id: 'pt3', business_id: DEMO_BUSINESS_ID, trigger_keywords: ['devolución', 'cambio', 'devolver'], mensaje_template: 'Aceptamos devoluciones hasta 15 días desde la compra. El producto debe estar sin uso y con etiquetas.', category: 'soporte', usage_count: 15, created_at: '2025-02-10T00:00:00Z' },
   { id: 'pt4', business_id: DEMO_BUSINESS_ID, trigger_keywords: ['horario', 'abren', 'atienden'], mensaje_template: 'Atendemos de lunes a viernes de 9:00 a 18:00 hrs. Por WhatsApp respondemos 24/7 con LEVI.', category: 'info', usage_count: 33, created_at: '2025-03-01T00:00:00Z' },
+]
+
+// ─── Recursos de Reserva ───
+
+export const DEMO_RECURSOS: RecursoReserva[] = [
+  { id: 'r1', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 1 — Pedro',    tipo: 'silla',        icono: 'Scissors', color: '#0ABAB5', activo: true, orden: 0, reservas_count: 48, created_at: '2025-01-01T00:00:00Z' },
+  { id: 'r2', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 2 — Martina',  tipo: 'silla',        icono: 'Scissors', color: '#8B5CF6', activo: true, orden: 1, reservas_count: 35, created_at: '2025-01-01T00:00:00Z' },
+  { id: 'r3', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 3 — Camilo',   tipo: 'silla',        icono: 'Scissors', color: '#F59E0B', activo: true, orden: 2, reservas_count: 22, created_at: '2025-01-01T00:00:00Z' },
+  { id: 'r4', business_id: DEMO_BUSINESS_ID, nombre: 'Cabina Spa',          tipo: 'cabina',       icono: 'Sparkles', color: '#EC4899', activo: true, orden: 3, reservas_count: 14, created_at: '2025-01-01T00:00:00Z' },
+]
+
+// ─── Reservas del día ───
+
+const HOY = new Date().toISOString().split('T')[0]
+
+export const DEMO_RESERVAS: Reserva[] = [
+  {
+    id: 'res1', business_id: DEMO_BUSINESS_ID, recurso_id: 'r1',
+    cliente_nombre: 'Valentina Torres', cliente_phone: '+56912345001',
+    servicio: 'Corte + barba', inicio: `${HOY}T09:00:00.000Z`, fin: `${HOY}T09:45:00.000Z`,
+    estado: 'completada', metodo_pago: 'transferencia', estado_pago: 'pagado',
+    monto: 18000, monto_anticipo: 0, es_walk_in: false, created_at: `${HOY}T08:00:00Z`,
+    recurso: { id: 'r1', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 1 — Pedro', tipo: 'silla', icono: 'Scissors', color: '#0ABAB5', activo: true, orden: 0, created_at: '' },
+  },
+  {
+    id: 'res2', business_id: DEMO_BUSINESS_ID, recurso_id: 'r2',
+    cliente_nombre: 'Diego Navarro', cliente_phone: '+56912345004',
+    servicio: 'Corte clásico', inicio: `${HOY}T10:00:00.000Z`, fin: `${HOY}T10:30:00.000Z`,
+    estado: 'confirmada', metodo_pago: 'pagado_wsp', estado_pago: 'anticipo',
+    monto: 12000, monto_anticipo: 5000, es_walk_in: false, created_at: `${HOY}T08:00:00Z`,
+    recurso: { id: 'r2', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 2 — Martina', tipo: 'silla', icono: 'Scissors', color: '#8B5CF6', activo: true, orden: 1, created_at: '' },
+  },
+  {
+    id: 'res3', business_id: DEMO_BUSINESS_ID, recurso_id: 'r1',
+    cliente_nombre: 'Sebastián Mora', cliente_phone: '+56912345002',
+    servicio: 'Degradado + diseño', inicio: `${HOY}T10:30:00.000Z`, fin: `${HOY}T11:15:00.000Z`,
+    estado: 'en_curso', metodo_pago: 'efectivo', estado_pago: 'pendiente',
+    monto: 15000, monto_anticipo: 0, es_walk_in: false, created_at: `${HOY}T08:00:00Z`,
+    recurso: { id: 'r1', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 1 — Pedro', tipo: 'silla', icono: 'Scissors', color: '#0ABAB5', activo: true, orden: 0, created_at: '' },
+  },
+  {
+    id: 'res4', business_id: DEMO_BUSINESS_ID, recurso_id: 'r3',
+    cliente_nombre: 'Camila Reyes', cliente_phone: '+56912345003',
+    servicio: 'Coloración + corte', inicio: `${HOY}T11:00:00.000Z`, fin: `${HOY}T12:30:00.000Z`,
+    estado: 'programada', metodo_pago: 'tarjeta', estado_pago: 'pendiente',
+    monto: 45000, monto_anticipo: 0, es_walk_in: false, created_at: `${HOY}T08:00:00Z`,
+    recurso: { id: 'r3', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 3 — Camilo', tipo: 'silla', icono: 'Scissors', color: '#F59E0B', activo: true, orden: 2, created_at: '' },
+  },
+  {
+    id: 'res5', business_id: DEMO_BUSINESS_ID, recurso_id: 'r4',
+    cliente_nombre: 'Isidora Vega', cliente_phone: '+56912345005',
+    servicio: 'Tratamiento facial', inicio: `${HOY}T13:00:00.000Z`, fin: `${HOY}T14:00:00.000Z`,
+    estado: 'programada', metodo_pago: 'pagado_wsp', estado_pago: 'pagado',
+    monto: 35000, monto_anticipo: 35000, es_walk_in: false, created_at: `${HOY}T08:00:00Z`,
+    recurso: { id: 'r4', business_id: DEMO_BUSINESS_ID, nombre: 'Cabina Spa', tipo: 'cabina', icono: 'Sparkles', color: '#EC4899', activo: true, orden: 3, created_at: '' },
+  },
+  {
+    id: 'res6', business_id: DEMO_BUSINESS_ID, recurso_id: 'r2',
+    cliente_nombre: 'Walk-in', cliente_phone: undefined,
+    servicio: 'Corte rápido', inicio: `${HOY}T14:30:00.000Z`, fin: `${HOY}T15:00:00.000Z`,
+    estado: 'programada', metodo_pago: 'efectivo', estado_pago: 'pendiente',
+    monto: 10000, monto_anticipo: 0, es_walk_in: true, created_at: `${HOY}T14:00:00Z`,
+    recurso: { id: 'r2', business_id: DEMO_BUSINESS_ID, nombre: 'Silla 2 — Martina', tipo: 'silla', icono: 'Scissors', color: '#8B5CF6', activo: true, orden: 1, created_at: '' },
+  },
 ]
 
 // ─── Tickets Soporte ───
