@@ -1,3 +1,4 @@
+
 /**
  * MIDDLEWARE AUTH — LEER ANTES DE MODIFICAR
  * ==========================================
@@ -20,6 +21,8 @@
  * getUser() aquí es INTENCIONAL — es la única llamada de red al servidor de Supabase Auth.
  * Los Server Components usan getSession() (local) para no competir con este refresh.
  */
+
+export const runtime = 'nodejs'
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
