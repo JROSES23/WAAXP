@@ -22,8 +22,6 @@
  * Los Server Components usan getSession() (local) para no competir con este refresh.
  */
 
-export const runtime = 'nodejs'
-
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -149,7 +147,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  /*
+   * Excluye del middleware:
+   *   - _next/static, _next/image  → assets internos de Next.js
+   *   - api/*                       → rutas API (incluye el bot de WhatsApp)
+   *   - favicon.ico + imágenes      → estáticos
+   * El middleware solo corre en rutas de página (UI).
+   */
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|api/|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
