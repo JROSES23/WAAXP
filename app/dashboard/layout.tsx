@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DashboardBottomNav from '@/components/DashboardBottomNav'
 import FloatingAssistant from '@/components/assistant/FloatingAssistant'
+import { requireAuth } from '@/lib/supabase/auth-guard'
 import { getAuthContext } from '@/lib/auth'
 import { obtenerConversacionesPorNegocio } from '@/app/dashboard/lib/data'
 
@@ -13,6 +14,9 @@ export default async function DashboardLayout({
 }: {
   children: ReactNode
 }) {
+  // Protección de ruta: redirige a /login si no hay sesión activa
+  await requireAuth()
+
   const auth = await getAuthContext()
 
   if (!auth) {

@@ -1,21 +1,21 @@
 /**
  * ARQUITECTURA AUTH — LEER ANTES DE MODIFICAR
  * ============================================
- * Este archivo corre en Server Components DESPUÉS del middleware.
+ * No hay middleware. La protección de rutas es responsabilidad de
+ * requireAuth() en auth-guard.ts, llamado desde layouts y pages.
  *
- * REGLA 1: Usar getSession(), NO getUser() en este contexto.
- *   - getUser() hace una llamada de red a Supabase Auth.
- *   - Si el access token expiró, intenta usar el refresh token.
- *   - El middleware YA consumió ese refresh token en el mismo ciclo de request.
- *   - Resultado: error `refresh_token_already_used` → getSession() también falla → null → redirect a /login.
+ * REGLA 1: Usar getUser() — valida el token contra Supabase Auth.
+ *   Sin middleware que haga el refresh, getSession() puede devolver
+ *   tokens expirados sin error. getUser() refresca si es necesario.
  *
- * REGLA 2: El middleware es la única fuente de verdad para validación de tokens.
- *   - Si llegamos aquí, el middleware ya validó/refrescó la sesión con el servidor.
- *   - getSession() lee el JWT local sin red — es seguro y correcto en este contexto.
+ * REGLA 2: getAuthContext() está envuelto en React.cache() — una sola
+ *   llamada de red por render tree aunque múltiples componentes lo usen.
  *
- * REGLA 3: No llamar getUser() aquí ni en ningún otro Server Component del dashboard.
+ * REGLA 3: requireAuth() en auth-guard.ts hace la validación primero.
+ *   getAuthContext() asume que el usuario YA está autenticado cuando
+ *   corre dentro de un layout protegido.
  *
- * Ver: https://supabase.com/docs/guides/auth/server-side/nextjs
+ * Ver: src/lib/supabase/auth-guard.ts
  */
 
 import { cache } from 'react'
@@ -56,12 +56,10 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   try {
     const supabase = await createClient()
 
-    // Read the session from cookies — no network call.
-    // The middleware already validated and refreshed the token if needed.
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user ?? null
-
-    if (!user) return null
+    // Valida el token contra Supabase Auth (refresca si expiró).
+    // Sin middleware, getSession() puede devolver tokens expirados sin error.
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return null
 
     const isSuperAdmin =
       user.app_metadata?.is_superadmin === true ||
