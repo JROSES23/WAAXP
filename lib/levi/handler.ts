@@ -49,8 +49,8 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     .select(`
       id, business_id, active, tone, welcome_message,
       businesses (
-        id, name, ai_prompt, ai_tone, ai_discount_pct, ai_followup_days,
-        products ( name, description, price, category ),
+        id, nombre, ai_prompt, ai_tone, ai_discount_pct, ai_followup_days,
+        products ( nombre, descripcion, precio, categoria_id ),
         response_templates ( trigger, response )
       )
     `)
@@ -65,12 +65,12 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
 
   const business = botConfig.businesses as unknown as {
     id:               string
-    name:             string
+    nombre:           string
     ai_prompt?:       string | null
     ai_tone?:         string | null
     ai_discount_pct?: number | null
     ai_followup_days?: number | null
-    products?: Array<{ name: string; description: string | null; price: number | null; category: string | null }>
+    products?: Array<{ nombre: string; descripcion: string | null; precio: number | null; categoria_id: string | null }>
     response_templates?: Array<{ trigger: string; response: string }>
   } | null
 
@@ -150,14 +150,14 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
 
   // 7. Construir system prompt con catálogo del negocio
   const productsList = (business.products ?? [])
-    .map((p) => `• ${p.name}${p.price ? ` — $${p.price.toLocaleString('es-CL')}` : ''}${p.description ? `: ${p.description}` : ''}`)
+    .map((p) => `• ${p.nombre}${p.precio ? ` — $${p.precio.toLocaleString('es-CL')}` : ''}${p.descripcion ? `: ${p.descripcion}` : ''}`)
     .join('\n')
 
   // ai_tone from businesses takes precedence over bot_config.tone
   const effectiveTone = business.ai_tone ?? botConfig.tone ?? undefined
 
   const systemPrompt = buildSystemPrompt({
-    businessName:   business.name,
+    businessName:   business.nombre,
     welcomeMessage: isFirstContact ? (botConfig.welcome_message ?? undefined) : undefined,
     tone:           effectiveTone,
     products:       productsList || undefined,

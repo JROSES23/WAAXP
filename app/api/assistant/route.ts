@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         .eq('status', 'pending_approval'),
       supabase
         .from('businesses')
-        .select('name, plan')
+        .select('nombre, plan')
         .eq('id', businessId)
         .single(),
     ])
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     businessContext = `
 DATOS DEL NEGOCIO (actualizados al ${now.toLocaleDateString('es-CL')}):
-- Nombre: ${business?.name ?? 'tu negocio'}
+- Nombre: ${business?.nombre ?? 'tu negocio'}
 - Plan activo: ${business?.plan ?? 'desconocido'}
 - Ventas del mes: $${totalSales.toLocaleString('es-CL')} CLP
 - Conversaciones del mes: ${convs.length}
