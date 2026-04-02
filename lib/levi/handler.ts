@@ -51,7 +51,7 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
       businesses (
         id, nombre, ai_prompt, ai_tone, ai_discount_pct, ai_followup_days,
         products ( nombre, descripcion, precio, categoria_id ),
-        response_templates ( trigger, response )
+        response_templates ( trigger_keywords, mensaje_template )
       )
     `)
     .eq('whatsapp_phone_id', msg.businessPhoneId)
@@ -71,10 +71,13 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     ai_discount_pct?: number | null
     ai_followup_days?: number | null
     products?: Array<{ nombre: string; descripcion: string | null; precio: number | null; categoria_id: string | null }>
-    response_templates?: Array<{ trigger: string; response: string }>
+    response_templates?: Array<{ trigger_keywords: string[]; mensaje_template: string }>
   } | null
 
-  if (!business) return
+  if (!business) {
+    console.error(`[LEVI] bot_config found but businesses join returned null for phone id ${msg.businessPhoneId}`)
+    return
+  }
 
   // 3. Obtener / crear cliente en la tabla customers
   const { data: customer } = await supabase
@@ -131,17 +134,18 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
 
   // 6. Revisar plantillas de respuesta rápida antes de llamar al LLM
   const templates = business.response_templates ?? []
+  const msgLower  = msg.text.toLowerCase()
   const template  = templates.find((t) =>
-    msg.text.toLowerCase().includes(t.trigger.toLowerCase()),
+    t.trigger_keywords.some((kw) => msgLower.includes(kw.toLowerCase())),
   )
 
   if (template && !isFirstContact) {
-    await sendTextMessage(msg.from, template.response)
+    await sendTextMessage(msg.from, template.mensaje_template)
     await supabase.from('messages').insert({
       business_id:    business.id,
       customer_phone: msg.from,
       role:           'assistant',
-      content:        template.response,
+      content:        template.mensaje_template,
       channel:        'whatsapp',
       source:         'template',
     })
