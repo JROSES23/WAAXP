@@ -79,40 +79,68 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     return
   }
 
-  // 3. Obtener / crear cliente en la tabla customers
-  const { data: customer } = await supabase
-    .from('customers')
+  // 3. Upsert cliente en la tabla clients (tabla canónica del CRM)
+  const { data: client } = await supabase
+    .from('clients')
     .select('id, conversation_count')
-    .eq('phone', msg.from)
+    .eq('phone_number', msg.from)
     .eq('business_id', business.id)
     .single()
 
-  let customerId: string
-  const isFirstContact = !customer
+  let clientId: string
+  const isFirstContact = !client
 
-  if (!customer) {
-    const { data: newCustomer } = await supabase
-      .from('customers')
+  if (!client) {
+    const { data: newClient, error: clientError } = await supabase
+      .from('clients')
       .insert({
-        phone:              msg.from,
+        phone_number:       msg.from,
         business_id:        business.id,
         first_contact_at:   new Date().toISOString(),
         conversation_count: 0,
       })
       .select('id')
       .single()
-    customerId = newCustomer?.id ?? crypto.randomUUID()
+
+    if (clientError || !newClient) {
+      console.error('[LEVI] Failed to create client record:', clientError)
+      return
+    }
+    clientId = newClient.id
   } else {
-    customerId = customer.id
+    clientId = client.id
   }
 
-  // 4. Obtener historial de conversación (últimos 12 mensajes)
+  // 4. Upsert conversación — necesario para obtener conversation_id,
+  //    que es requerido (NOT NULL) en la tabla messages.
+  //    Requiere el índice único: conversations(business_id, phone_number)
+  //    (ver supabase/migrations/002_conversations_unique_index.sql)
+  const { data: conversation, error: convError } = await supabase
+    .from('conversations')
+    .upsert(
+      {
+        business_id:     business.id,
+        phone_number:    msg.from,
+        last_message_at: new Date().toISOString(),
+      },
+      { onConflict: 'business_id,phone_number' },
+    )
+    .select('id')
+    .single()
+
+  if (convError || !conversation) {
+    console.error('[LEVI] Failed to upsert conversation:', convError)
+    return
+  }
+
+  const conversationId = conversation.id
+
+  // 5. Obtener historial de conversación (últimos 12 mensajes)
   const { data: history } = await supabase
     .from('messages')
     .select('content, role')
-    .eq('customer_phone', msg.from)
-    .eq('business_id', business.id)
-    .order('created_at', { ascending: false })
+    .eq('conversation_id', conversationId)
+    .order('timestamp', { ascending: false })
     .limit(12)
 
   const chatHistory: ChatMessage[] = (history ?? [])
@@ -122,17 +150,20 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
       content: m.content as string,
     }))
 
-  // 5. Guardar mensaje entrante
-  await supabase.from('messages').insert({
-    business_id:    business.id,
-    customer_phone: msg.from,
-    role:           'user',
-    content:        msg.text,
-    channel:        'whatsapp',
-    message_id:     msg.messageId,
+  // 6. Guardar mensaje entrante
+  const { error: inboundError } = await supabase.from('messages').insert({
+    conversation_id: conversationId,
+    business_id:     business.id,
+    role:            'user',
+    content:         msg.text,
   })
 
-  // 6. Revisar plantillas de respuesta rápida antes de llamar al LLM
+  if (inboundError) {
+    console.error('[LEVI] Failed to insert inbound message:', inboundError)
+    return
+  }
+
+  // 7. Revisar plantillas de respuesta rápida antes de llamar al LLM
   const templates = business.response_templates ?? []
   const msgLower  = msg.text.toLowerCase()
   const template  = templates.find((t) =>
@@ -141,18 +172,23 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
 
   if (template && !isFirstContact) {
     await sendTextMessage(msg.from, template.mensaje_template)
-    await supabase.from('messages').insert({
-      business_id:    business.id,
-      customer_phone: msg.from,
-      role:           'assistant',
-      content:        template.mensaje_template,
-      channel:        'whatsapp',
-      source:         'template',
-    })
+    await Promise.all([
+      supabase.from('messages').insert({
+        conversation_id: conversationId,
+        business_id:     business.id,
+        role:            'assistant',
+        content:         template.mensaje_template,
+        source:          'template',
+      }),
+      supabase
+        .from('conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', conversationId),
+    ])
     return
   }
 
-  // 7. Construir system prompt con catálogo del negocio
+  // 8. Construir system prompt con catálogo del negocio
   const productsList = (business.products ?? [])
     .map((p) => `• ${p.nombre}${p.precio ? ` — $${p.precio.toLocaleString('es-CL')}` : ''}${p.descripcion ? `: ${p.descripcion}` : ''}`)
     .join('\n')
@@ -170,7 +206,7 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     followupDays:   business.ai_followup_days ?? undefined,
   })
 
-  // 8. Llamar al LLM
+  // 9. Llamar al LLM
   let llmResponse
   try {
     llmResponse = await callLLM(
@@ -184,32 +220,34 @@ export async function handleLeviMessage(msg: IncomingWhatsAppMessage): Promise<v
     return
   }
 
-  // 9. Enviar respuesta
+  // 10. Enviar respuesta
   await sendTextMessage(msg.from, llmResponse.text)
 
-  // 10. Guardar respuesta del bot + actualizar stats
+  // 11. Guardar respuesta del bot + actualizar stats y timestamp de conversación
   await Promise.all([
     supabase.from('messages').insert({
-      business_id:    business.id,
-      customer_phone: msg.from,
-      role:           'assistant',
-      content:        llmResponse.text,
-      channel:        'whatsapp',
-      source:         'levi',
-      requires_human: llmResponse.requiresHuman,
-      tokens_used:    llmResponse.tokensUsed ?? null,
+      conversation_id: conversationId,
+      business_id:     business.id,
+      role:            'assistant',
+      content:         llmResponse.text,
+      source:          'levi',
+      requires_human:  llmResponse.requiresHuman,
+      tokens_used:     llmResponse.tokensUsed ?? null,
     }),
+    supabase
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', conversationId),
     supabase.rpc('increment_conversation_count', {
-      p_customer_id: customerId,
+      p_customer_id: clientId,
     }),
   ])
 
-  // 11. Si requiere humano, actualizar la conversación a "pending_approval"
+  // 12. Si requiere humano, marcar conversación como pending_approval
   if (llmResponse.requiresHuman) {
     await supabase
       .from('conversations')
-      .update({ status: 'pending_approval', requires_human: true })
-      .eq('customer_phone', msg.from)
-      .eq('business_id', business.id)
+      .update({ status: 'pending_approval' })
+      .eq('id', conversationId)
   }
 }
